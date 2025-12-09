@@ -20,7 +20,7 @@ class MaquinaResource extends Resource
 {
     protected static ?string $model = Maquina::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
     protected static ?string $recordTitleAttribute = 'Maquinas';
 

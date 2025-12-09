@@ -20,7 +20,7 @@ class TipoMaquinaResource extends Resource
 {
     protected static ?string $model = TipoMaquina::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog;
 
     protected static ?string $recordTitleAttribute = 'Tipo de maquinas';
 
