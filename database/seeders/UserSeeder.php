@@ -25,6 +25,12 @@ class UserSeeder extends Seeder
             12 => 'sin_identificar',
         ];
 
+        User::create([
+                    'name'      => "Eduardo Admin",
+                    'email'     => "eduardo@edynoestudio.com",
+                    'password'  => Hash::make('Eduardo1.1'),
+                ]); 
+                
         foreach ($roles as $rolId => $nombreRol) {
             for ($i = 1; $i <= 10; $i++) {
                 User::create([

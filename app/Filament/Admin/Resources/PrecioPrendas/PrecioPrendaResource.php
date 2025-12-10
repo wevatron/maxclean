@@ -20,7 +20,7 @@ class PrecioPrendaResource extends Resource
 {
     protected static ?string $model = PrecioPrenda::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Bookmark;
 
     protected static ?string $recordTitleAttribute = 'PrecioPrenda';
 
