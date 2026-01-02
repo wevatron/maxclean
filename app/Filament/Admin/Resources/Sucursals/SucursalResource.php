@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\Sucursals\Pages\ViewSucursal;
 use App\Filament\Admin\Resources\Sucursals\Schemas\SucursalForm;
 use App\Filament\Admin\Resources\Sucursals\Schemas\SucursalInfolist;
 use App\Filament\Admin\Resources\Sucursals\Tables\SucursalsTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\Sucursal;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -19,11 +20,12 @@ use Filament\Tables\Table;
 class SucursalResource extends Resource
 {
     protected static ?string $model = Sucursal::class;
-
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingStorefront;
-
-
+    protected static ?string $cluster = CatalogosCluster::class;
     protected static ?string $recordTitleAttribute = 'Sucursales';
+    protected static ?string $navigationLabel = 'Sucursales';
+    protected static ?string $pluralLabel = 'Sucursales';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

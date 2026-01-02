@@ -23,6 +23,7 @@ class MaquinaResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
     protected static ?string $recordTitleAttribute = 'Maquinas';
+    
 
     public static function form(Schema $schema): Schema
     {

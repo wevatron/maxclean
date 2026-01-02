@@ -9,20 +9,22 @@ use App\Filament\Admin\Resources\Prendas\Pages\ViewPrenda;
 use App\Filament\Admin\Resources\Prendas\Schemas\PrendaForm;
 use App\Filament\Admin\Resources\Prendas\Schemas\PrendaInfolist;
 use App\Filament\Admin\Resources\Prendas\Tables\PrendasTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\Prenda;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use App\Filament\Clusters\Settings\SettingsCluster;
 
 class PrendaResource extends Resource
 {
     protected static ?string $model = Prenda::class;
-
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Camera;
-
     protected static ?string $recordTitleAttribute = 'Prenda';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $cluster = CatalogosCluster::class;
 
     public static function form(Schema $schema): Schema
     {

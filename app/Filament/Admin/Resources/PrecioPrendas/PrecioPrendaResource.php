@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\PrecioPrendas\Pages\ViewPrecioPrenda;
 use App\Filament\Admin\Resources\PrecioPrendas\Schemas\PrecioPrendaForm;
 use App\Filament\Admin\Resources\PrecioPrendas\Schemas\PrecioPrendaInfolist;
 use App\Filament\Admin\Resources\PrecioPrendas\Tables\PrecioPrendasTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\PrecioPrenda;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -19,9 +20,9 @@ use Filament\Tables\Table;
 class PrecioPrendaResource extends Resource
 {
     protected static ?string $model = PrecioPrenda::class;
-
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Bookmark;
-
+    protected static ?string $cluster = CatalogosCluster::class;
+    protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'PrecioPrenda';
 
     public static function form(Schema $schema): Schema

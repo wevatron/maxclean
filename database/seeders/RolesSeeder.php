@@ -10,7 +10,7 @@ class RolesSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            'root',
+            'super_admin',
             'dueño',
             'sat',
             'admin_sucursal',

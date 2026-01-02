@@ -2,10 +2,12 @@
 
 namespace App\Filament\Admin\Resources\Prendas\Tables;
 
+use Dom\Text;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class PrendasTable
@@ -14,7 +16,11 @@ class PrendasTable
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('id')->label('ID')->sortable()->searchable(),
+                TextColumn::make('nombre')->label('Nombre')->sortable()->searchable(),
+                TextColumn::make('categoria.nombre')->label('Categoría')->sortable()->searchable(),
+                TextColumn::make('tamano')->label('Tamaño')->sortable()->searchable(),
+                TextColumn::make('unidad')->label('Unidad')->sortable()->searchable(),
             ])
             ->filters([
                 //
