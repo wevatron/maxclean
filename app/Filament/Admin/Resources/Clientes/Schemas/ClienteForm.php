@@ -34,6 +34,7 @@ class ClienteForm
 
                 TextInput::make('whatsapp')
                     ->label('Teléfono/Whatsapp')
+                    ->required()
                     ->maxLength(20)
                     ->tel(),
 

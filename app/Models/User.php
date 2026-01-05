@@ -36,4 +36,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Punto::class);
     }
+    public function sucursales()
+    {
+        return $this->belongsToMany(Sucursal::class, 'sucursal_user')
+            ->withPivot('rol_en_sucursal')
+            ->withTimestamps();
+    }
+
 }

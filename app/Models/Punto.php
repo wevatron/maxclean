@@ -14,6 +14,8 @@ class Punto extends Model
         'asignado_por',
         'puntos',
         'fecha',
+        'tikete',
+        'sucursal_id',
     ];
 
     /**
@@ -22,6 +24,13 @@ class Punto extends Model
     public function cliente()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+    /**
+     * Sucursal asociada (opcional)
+     */
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
     }
 
     /**

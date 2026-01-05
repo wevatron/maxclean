@@ -16,10 +16,13 @@ return new class extends Migration
 
             // Cliente que recibe los puntos
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-
+            $table->foreignId('sucursal_id')
+            ->nullable()
+            ->constrained('sucursals') // si tu tabla se llama sucursales, cámbialo
+            ->nullOnDelete();
             // Usuario que asignó los puntos
             $table->foreignId('asignado_por')->constrained('users');
-
+            $table->string('tikete')->nullable();
             $table->integer('puntos'); // cantidad
             $table->dateTime('fecha')->nullable(); // fecha asignación
 

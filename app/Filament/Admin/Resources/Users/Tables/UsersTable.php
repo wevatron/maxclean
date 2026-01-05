@@ -22,9 +22,10 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
-                TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
+                TextColumn::make('sucursales.nombre')
+                ->label('Sucursales')
+                ->badge(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -41,10 +42,10 @@ class UsersTable
                 ViewAction::make(),
                 EditAction::make(),
             ])
-            ->toolbarActions([
+            /* ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ]) */;
     }
 }

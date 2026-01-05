@@ -40,4 +40,11 @@ class Sucursal extends Model
     {
         return $this->belongsToMany(User::class, 'sucursal_user');
     }
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'sucursal_user')
+            ->withPivot('rol_en_sucursal')
+            ->withTimestamps();
+    }
+
 }

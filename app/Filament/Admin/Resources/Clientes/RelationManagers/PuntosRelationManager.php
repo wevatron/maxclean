@@ -2,20 +2,17 @@
 
 namespace App\Filament\Admin\Resources\ClienteResource\RelationManagers;
 
-use App\Models\Punto;
+use App\Models\Sucursal;
 use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Model;
 
 class PuntosRelationManager extends RelationManager
 {
@@ -33,11 +30,20 @@ class PuntosRelationManager extends RelationManager
                 ->numeric()
                 ->minValue(1)
                 ->required(),
-
-            DateTimePicker::make('fecha')
-                ->label('Fecha')
-                ->default(now())
+            TextInput::make('tikete')
+                ->label('Numero/Folio de tikete')
+                ->numeric()
+                ->minValue(1)
                 ->required(),
+            Select::make('sucursal_id')
+                ->label('Sucursal')
+                ->options(Sucursal::pluck('nombre', 'id'))
+                ->searchable()
+                ->required(),
+
+
+            Hidden::make('fecha')
+                ->default(now()),
 
             Hidden::make('asignado_por')
                 ->default(Auth::id()),
@@ -53,6 +59,10 @@ class PuntosRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('puntos')
                     ->label('Puntos'),
+                Tables\Columns\TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal'),
+                Tables\Columns\TextColumn::make('tikete')
+                    ->label('Tikete/folio'),
 
                 Tables\Columns\TextColumn::make('fecha')
                     ->dateTime('d/m/Y H:i')
@@ -73,10 +83,10 @@ class PuntosRelationManager extends RelationManager
             ])
             ->actions([
                 EditAction::make(),
-                DeleteAction::make(),
+                //DeleteAction::make(),
             ])
             ->bulkActions([
-                DeleteBulkAction::make(),
+                //DeleteBulkAction::make(),
             ]);
     }
 
