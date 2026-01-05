@@ -11,6 +11,6 @@ class TiendaCluster extends Cluster
 {
     
     protected static ?SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
-    protected static ?string $navigationLabel = 'Clientes';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
+    protected static ?string $navigationLabel = 'Tienda';
 }

@@ -21,11 +21,15 @@ class UserSeeder extends Seeder
             7 => 'cliente'
         ];
 
-        User::create([
-                    'name'      => "Eduardo Admin",
-                    'email'     => "eduardo@edynoestudio.com",
-                    'password'  => Hash::make('Eduardo1.1'),
-                ]); 
+        $superAdmin = User::create([
+            'name'     => "Administrador Super",
+            'email'    => "eduardo@edynoestudio.com",
+            'password' => Hash::make('Eduardo1.1'),
+        ]);
+
+        $superAdmin->assignRole('super_admin');
+
+        
         Sucursal::create([
             'nombre' => 'Sucursal Principal',
             'direccion' => 'Calle Principal #123, Ciudad, País',

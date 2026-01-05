@@ -24,6 +24,7 @@ class UserForm
                     ->multiple()
                     ->relationship('sucursales', 'nombre')
                     ->preload()
+                    ->required()
                     ->searchable(),
 
                 Select::make('roles')
@@ -31,6 +32,7 @@ class UserForm
                     ->multiple()
                     ->relationship('roles', 'name')
                     ->preload()
+                    ->required()
                     ->searchable(),
 
                 TextInput::make('password')
