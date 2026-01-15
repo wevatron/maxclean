@@ -40,4 +40,9 @@ class Punto extends Model
     {
         return $this->belongsTo(User::class, 'asignado_por');
     }
+
+    public function scopeDelCliente($query)
+    {
+        return $query->where('user_id', auth()->id());
+    }
 }
