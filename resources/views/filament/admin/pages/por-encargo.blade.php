@@ -261,25 +261,37 @@
                     @endif
                 </div>
 
-                {{--             <h2 style="font-size:22px; margin-bottom:20px;">Servicio</h2>
+                <div style="margin: 10px 0 24px 0;">
+                    <label
+                        style="
+                                display:flex;
+                                align-items:center;
+                                justify-content:space-between;
+                                gap:12px;
+                                background:#0f172a;
+                                border:1px solid #1f2937;
+                                border-radius:14px;
+                                padding:14px 16px;
+                                cursor:pointer;
+                            ">
+                        <div>
+                            <div style="font-size:16px; font-weight:700; color:white;">
+                                Modo express
+                            </div>
+                        </div>
 
-                <select wire:model="servicioSeleccionado"
-                    style="
-                        width:100%;
-                        padding:14px;
-                        border-radius:12px;
-                        margin-bottom:30px;
-                        color:black;
-                    ">
-                    @foreach (\App\Models\Servicio::where('activo', true)->get() as $servicio)
-                        <option value="{{ $servicio->id }}">
-                            {{ $servicio->nombre }}
-                        </option>
-                    @endforeach
-                </select> --}}
-
+                        <input type="checkbox" wire:model.live="modoExpress"
+                            style="
+                                width:20px;
+                                height:20px;
+                                accent-color:#2563eb;
+                                cursor:pointer;
+                            ">
+                    </label>
+                </div>
+{{-- 
                 <h2 style="font-size:22px; margin-bottom:20px;">Ticket</h2>
-
+ --}}
                 <div style="flex:1; overflow:auto;">
                     @forelse ($items as $index => $item)
                         <div
@@ -346,7 +358,7 @@
                                     border:none;
                                     font-size:20px;
                                     font-weight:700;
-                                    margin-top:20px;
+                                    margin-top:10px;
                                     color:white;
                                     cursor:pointer;
                                 ">

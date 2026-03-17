@@ -9,6 +9,7 @@ class Ticket extends Model
     protected $fillable = [
         'sucursal_id',
         'user_id',
+        'cliente_id',
         'status_id',
         'numero',
         'tipo',
@@ -23,6 +24,10 @@ class Ticket extends Model
     public function operador()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+    public function cliente()
+    {
+        return $this->belongsTo(User::class, 'cliente_id');
     }
 
     public function status()

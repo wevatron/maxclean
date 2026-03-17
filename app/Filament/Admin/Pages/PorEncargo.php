@@ -16,6 +16,7 @@ use BackedEnum;
 
 class PorEncargo extends Page
 {
+    public $modoExpress = false;
     protected string $view = 'filament.admin.pages.por-encargo';
     protected static ?string $navigationLabel = 'Por encargo';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
@@ -152,6 +153,7 @@ class PorEncargo extends Page
         $precioRelacion = $prenda->precios->first();
 
         $precioNormal = $precioRelacion?->precio_normal;
+        $precioExpress = $precioRelacion?->precio_express ?? 0;
         $precioPaquete = $precioRelacion?->precio_paquete ?? 0;
         $piezasPorPaquete = $precioRelacion?->piezas_por_paquete ?? 0;
 
@@ -176,6 +178,7 @@ class PorEncargo extends Page
             'nombre'             => $prenda->nombre,
             'precio'             => $precioNormal,
             'precio_normal'      => $precioNormal,
+            'precio_express'     => $precioExpress,
             'precio_paquete'     => $precioPaquete,
             'piezas_por_paquete' => $piezasPorPaquete,
             'cantidad'           => 1,
@@ -210,8 +213,17 @@ class PorEncargo extends Page
     {
         $cantidad = (int) ($item['cantidad'] ?? 0);
         $precioNormal = (float) ($item['precio_normal'] ?? $item['precio'] ?? 0);
+        $precioExpress = (float) ($item['precio_express'] ?? 0);
         $precioPaquete = (float) ($item['precio_paquete'] ?? 0);
         $piezasPorPaquete = (int) ($item['piezas_por_paquete'] ?? 0);
+
+        if ($this->modoExpress) {
+            if ($precioExpress <= 0) {
+                return $cantidad * $precioNormal;
+            }
+
+            return $cantidad * $precioExpress;
+        }
 
         if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
             $paquetes = intdiv($cantidad, $piezasPorPaquete);
@@ -221,6 +233,11 @@ class PorEncargo extends Page
         }
 
         return $cantidad * $precioNormal;
+    }
+
+    public function updatedModoExpress()
+    {
+        $this->calcularTotal();
     }
 
     public function abrirModalCobro()
@@ -317,26 +334,37 @@ class PorEncargo extends Page
             DB::transaction(function () {
                 $numero = Ticket::generarNumero($this->sucursalId);
 
-                $statusRecibido = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->first()?->id ?? 1;
-                $statusPagado   = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->first()?->id ?? 2;
+                $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
+                $statusPagadoId   = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
 
+                if (! $statusRecibidoId) {
+                    throw new \Exception('No existe el status "recibido" en ticket_statuses.');
+                }
+
+                if (! $statusPagadoId) {
+                    throw new \Exception('No existe el status "pagado" en ticket_statuses.');
+                }
                 $ticket = Ticket::create([
                     'sucursal_id' => $this->sucursalId,
                     'user_id'     => auth()->id(),
                     'cliente_id'  => $this->clienteSeleccionadoId,
-                    'status_id'   => $statusRecibido,
+                    'status_id'   => $statusRecibidoId,
                     'numero'      => $numero,
-                    'tipo'        => 'encargo',
+                    'tipo'        => $this->modoExpress ? 'encargo_express' : 'encargo',
                     'total'       => $this->total,
                 ]);
-                
+
                 foreach ($this->items as $item) {
                     $subtotalItem = $this->calcularSubtotalItem($item);
+
+                    $precioUnitario = $this->modoExpress
+                        ? ($item['precio_express'] ?? $item['precio_normal'] ?? $item['precio'])
+                        : ($item['precio_normal'] ?? $item['precio']);
 
                     $ticket->items()->create([
                         'prenda_id'       => $item['prenda_id'],
                         'cantidad'        => $item['cantidad'],
-                        'precio_unitario' => $item['precio_normal'] ?? $item['precio'],
+                        'precio_unitario' => $precioUnitario,
                         'subtotal'        => $subtotalItem,
                     ]);
                 }
@@ -354,7 +382,9 @@ class PorEncargo extends Page
                     $ticket->refresh();
 
                     if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->sum('monto'))) <= 0) {
-                        $ticket->update(['status_id' => $statusPagado]);
+                        $ticket->update([
+                            'status_id' => $statusPagadoId,
+                        ]);
                     }
                 }
 
@@ -375,8 +405,9 @@ class PorEncargo extends Page
                 'clienteSeleccionadoId',
                 'clienteSeleccionadoNombre',
                 'clientePanelAbierto',
+                'modoExpress',
             ]);
-
+            $this->modoExpress = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
             $this->modalCobroAbierto = false;

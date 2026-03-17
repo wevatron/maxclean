@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('sucursal_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('cliente_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('status_id')->constrained('ticket_statuses');
             $table->string('numero');
-            $table->enum('tipo', ['encargo', 'autoservicio']);
+            $table->string('tipo');
             $table->decimal('total', 10, 2)->default(0);
             $table->timestamps();
         });

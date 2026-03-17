@@ -30,8 +30,8 @@ class ClienteResource extends Resource
     protected static ?string $navigationLabel = 'Clientes';
     protected static ?string $pluralLabel = 'Clientes';
 
-    protected static ?string $cluster = TiendaCluster::class;
-    protected static ?int $navigationSort = 2;
+/*     protected static ?string $cluster = TiendaCluster::class;
+    protected static ?int $navigationSort = 2; */
 
     public static function getModelLabel(): string
     {

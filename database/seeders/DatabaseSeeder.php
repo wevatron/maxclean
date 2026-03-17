@@ -21,15 +21,15 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class, 
             */
 
-       /*      TipoMaquinaSeeder::class,
-            MaquinaSeeder::class, */
+            TipoMaquinaSeeder::class,
 
+            MaquinaSeeder::class,
             CategoriaPrendaSeeder::class,
-            /*  
             PrendaSeeder::class,
+            TicketStatusSeeder::class,
+            /*  
             PrecioPrendaSeeder::class, 
             */
         ]);
     }
-
 }
