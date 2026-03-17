@@ -2,14 +2,12 @@
 
 namespace App\Filament\Admin\Resources\Maquinas\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
+use Filament\Tables\Table;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
+use App\Models\Sucursal;
+use App\Models\TipoMaquina;
 
 class MaquinasTable
 {
@@ -31,8 +29,8 @@ class MaquinasTable
                     ->label('Estado')
                     ->colors([
                         'success' => 'libre',
-                        'danger'  => 'ocupada',
-                        'gray'    => 'fuera_de_servicio',
+                        'warning' => 'ocupada',
+                        'danger'  => 'fuera_de_servicio',
                     ])
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'libre' => 'Libre',
@@ -41,12 +39,36 @@ class MaquinasTable
                     }),
             ])
             ->filters([
+                // 🔹 Filtro por estado
                 SelectFilter::make('status')
+                    ->label('Estado')
                     ->options([
                         'libre' => 'Libre',
                         'ocupada' => 'Ocupada',
                         'fuera_de_servicio' => 'Fuera de servicio',
                     ]),
+
+                // 🔹 Filtro por sucursal
+                SelectFilter::make('sucursal_id')
+                    ->label('Sucursal')
+                    ->options(
+                        Sucursal::query()
+                            ->orderBy('nombre')
+                            ->pluck('nombre', 'id')
+                            ->toArray()
+                    )
+                    ->searchable(),
+
+                // 🔹 Filtro por tipo de máquina
+                SelectFilter::make('tipo_maquina_id')
+                    ->label('Tipo de máquina')
+                    ->options(
+                        TipoMaquina::query()
+                            ->orderBy('nombre')
+                            ->pluck('nombre', 'id')
+                            ->toArray()
+                    )
+                    ->searchable(),
             ]);
     }
 }

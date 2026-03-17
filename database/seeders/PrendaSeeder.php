@@ -3,93 +3,111 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\CategoriaPrenda;
 use App\Models\Prenda;
+use App\Models\CategoriaPrenda;
 
 class PrendaSeeder extends Seeder
 {
     public function run(): void
     {
         $data = [
-            // TOALLAS
+
+            // 🟩 TOALLAS
             'Toallas' => [
-                ['nombre' => 'Toalla facial'],
-                ['nombre' => 'Toalla de mano'],
-                ['nombre' => 'Toalla de baño'],
+                ['nombre' => 'Toalla facial', 'tamano' => 'facial', 'unidad' => 'pieza'],
+                ['nombre' => 'Toalla de mano', 'tamano' => 'mano', 'unidad' => 'pieza'],
+                ['nombre' => 'Toalla de baño', 'tamano' => 'baño', 'unidad' => 'pieza'],
             ],
 
-            // SÁBANAS
+            // 🟦 SÁBANAS
             'Sábanas' => [
-                ['nombre' => 'Juego de sábanas'],
-                ['nombre' => 'Sábana bebé'],
+                ['nombre' => 'Juego de sábanas', 'unidad' => 'pieza'],
+                ['nombre' => 'Sábana bebé', 'unidad' => 'pieza'],
             ],
 
-            // COBIJAS
+            // 🟫 COBIJAS
             'Cobijas' => [
-                ['nombre' => 'Cobija'],
+                ['nombre' => 'Cobija', 'unidad' => 'pieza'],
             ],
 
-            // EDREDONES
+            // 🟥 EDREDONES
             'Edredones' => [
-                ['nombre' => 'Edredón individual delgado', 'tamano' => 'delgado'],
-                ['nombre' => 'Edredón individual normal',  'tamano' => 'normal'],
-                ['nombre' => 'Edredón individual jumbo',   'tamano' => 'jumbo'],
+                ['nombre' => 'Edredón individual', 'tamano' => 'delgado', 'unidad' => 'pieza'],
+                ['nombre' => 'Edredón individual', 'tamano' => 'normal',  'unidad' => 'pieza'],
+                ['nombre' => 'Edredón individual', 'tamano' => 'jumbo',   'unidad' => 'pieza'],
 
-                ['nombre' => 'Edredón matrimonial normal', 'tamano' => 'normal'],
-                ['nombre' => 'Edredón matrimonial jumbo',  'tamano' => 'jumbo'],
+                ['nombre' => 'Edredón matrimonial', 'tamano' => 'normal', 'unidad' => 'pieza'],
+                ['nombre' => 'Edredón matrimonial', 'tamano' => 'jumbo',  'unidad' => 'pieza'],
 
-                ['nombre' => 'Edredón Queen normal',       'tamano' => 'normal'],
-                ['nombre' => 'Edredón Queen jumbo',        'tamano' => 'jumbo'],
+                ['nombre' => 'Edredón Queen', 'tamano' => 'normal', 'unidad' => 'pieza'],
+                ['nombre' => 'Edredón Queen', 'tamano' => 'jumbo',  'unidad' => 'pieza'],
 
-                ['nombre' => 'Edredón King normal',        'tamano' => 'normal'],
-                ['nombre' => 'Edredón King jumbo',         'tamano' => 'jumbo'],
+                ['nombre' => 'Edredón King', 'tamano' => 'normal', 'unidad' => 'pieza'],
+                ['nombre' => 'Edredón King', 'tamano' => 'jumbo',  'unidad' => 'pieza'],
             ],
 
-            // ALMOHADAS
+            // 🟪 ALMOHADAS
             'Almohadas' => [
-                ['nombre' => 'Almohada normal'],
-                ['nombre' => 'Almohada Sognare'],
+                ['nombre' => 'Almohada normal',   'unidad' => 'pieza'],
+                ['nombre' => 'Almohada Sognare',  'unidad' => 'pieza'],
             ],
 
-            // CUBRECAMAS
-            'Cubrecamas' => [
-                ['nombre' => 'Cubrecolchón normal'],
-                ['nombre' => 'Cubrecolchón Sognare'],
+            // 🟨 CUBRECOLCHONES
+            'Cubrecolchones' => [
+                ['nombre' => 'Cubrecolchón normal',  'unidad' => 'pieza'],
+                ['nombre' => 'Cubrecolchón Sognare', 'unidad' => 'pieza'],
             ],
 
-            // CHAMARRAS
-            'Chamarras' => [
-                ['nombre' => 'Chamarra'],
-                ['nombre' => 'Chaleco'],
+            // 🟧 CHAMARRAS Y ABRIGOS
+            'Chamarras y Abrigos' => [
+                ['nombre' => 'Chamarra', 'unidad' => 'pieza'],
+                ['nombre' => 'Chaleco',  'unidad' => 'pieza'],
             ],
 
-            // ROPA INTERIOR
-            'Ropa interior' => [
+            // 🟫 ROPA INTERIOR
+            'Ropa Interior' => [
                 ['nombre' => 'Ropa interior por kg', 'unidad' => 'kg'],
             ],
 
-            // VARIOS
-            'Varios' => [
-                ['nombre' => 'Gorra'],
-                ['nombre' => 'Mochila'],
-                ['nombre' => 'Manteles 1-4'],
-                ['nombre' => 'Manteles 5-9'],
-                ['nombre' => 'Zapatillas / Tenis'],
+            // 🟦 ACCESORIOS
+            'Accesorios' => [
+                ['nombre' => 'Gorra',    'unidad' => 'pieza'],
+                ['nombre' => 'Mochila',  'unidad' => 'pieza'],
+            ],
+
+            // 🟪 MANTELES
+            'Manteles' => [
+                ['nombre' => 'Manteles 1-4', 'tamano' => '1-4', 'unidad' => 'pieza'],
+                ['nombre' => 'Manteles 5-9', 'tamano' => '5-9', 'unidad' => 'pieza'],
+            ],
+
+            // 🟨 CALZADO
+            'Calzado' => [
+                ['nombre' => 'Zapatillas / Tenis', 'unidad' => 'par'],
             ],
         ];
 
-        foreach ($data as $categoria => $prendas) {
-            $cat = CategoriaPrenda::where('nombre', $categoria)->first();
+        foreach ($data as $categoriaNombre => $prendas) {
+
+            $categoria = CategoriaPrenda::where('nombre', $categoriaNombre)->first();
+
+            if (!$categoria) {
+                $this->command->warn("Categoría no encontrada: $categoriaNombre");
+                continue;
+            }
 
             foreach ($prendas as $item) {
                 Prenda::firstOrCreate([
-                    'categoria_prenda_id' => $cat->id,
-                    'nombre' => $item['nombre'],
+                    'categoria_prenda_id' => $categoria->id,
+                    'nombre'              => $item['nombre'],
+                    'tamano'              => $item['tamano'] ?? null,
                 ], [
-                    'tamano' => $item['tamano'] ?? null,
-                    'unidad' => $item['unidad'] ?? 'pieza',
+                    'unidad'       => $item['unidad'] ?? 'pieza',
+                    'descripcion'  => $item['descripcion'] ?? null,
                 ]);
             }
         }
+
+        $this->command->info('Prendas cargadas correctamente.');
     }
 }

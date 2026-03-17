@@ -21,7 +21,7 @@ class PrecioPrendaResource extends Resource
 {
     protected static ?string $model = PrecioPrenda::class;
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Bookmark;
-    protected static ?string $cluster = CatalogosCluster::class;
+    /* protected static ?string $cluster = CatalogosCluster::class; */
     protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'PrecioPrenda';
 

@@ -230,6 +230,7 @@ return [
 
     'custom_permissions' => [
         'Clientes:Gestionar' => 'Gestionar clientes',
+        'Punto:Gestionar' => 'Gestionar punto de venta',
     ],
 
     /*

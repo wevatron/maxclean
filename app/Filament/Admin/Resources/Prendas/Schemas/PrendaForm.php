@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Prendas\Schemas;
 
-use Dom\Text;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -17,21 +16,41 @@ class PrendaForm
                     ->label('Nombre')
                     ->required()
                     ->maxLength(255),
-                Select::make('categoria_id')
+
+                Select::make('categoria_prenda_id')
                     ->relationship('categoria', 'nombre')
                     ->label('Categoría')
                     ->required(),
-                TextInput::make('tamano')
+
+                Select::make('tamano')
                     ->label('Tamaño')
-                    ->required()
-                    ->maxLength(100),
-                TextInput::make('unidad')
+                    ->options([
+                        'chico'   => 'Chico',
+                        'mediano' => 'Mediano',
+                        'grande'  => 'Grande',
+                        'delgado' => 'Delgado',
+                        'normal'  => 'Normal',
+                        'jumbo'   => 'Jumbo',
+                        'especial'=> 'Especial',
+                    ])
+                    ->searchable()
+                    ->nullable(),
+
+                Select::make('unidad')
                     ->label('Unidad')
+                    ->options([
+                        'pieza'   => 'Pieza',
+                        'kg'      => 'Kilogramo (kg)',
+                        'paquete' => 'Paquete',
+                        'par'     => 'Par',
+                    ])
+                    ->default('pieza')
                     ->required()
-                    ->maxLength(100),
+                    ->searchable(),
+
                 TextInput::make('descripcion')
                     ->label('Descripción')
-                    ->maxLength(1000),  
+                    ->maxLength(1000),
             ]);
     }
 }

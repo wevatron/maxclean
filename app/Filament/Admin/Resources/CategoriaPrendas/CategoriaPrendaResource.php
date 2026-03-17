@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\CategoriaPrendas\Pages\CreateCategoriaPrenda;
 use App\Filament\Admin\Resources\CategoriaPrendas\Pages\EditCategoriaPrenda;
 use App\Filament\Admin\Resources\CategoriaPrendas\Pages\ListCategoriaPrendas;
 use App\Filament\Admin\Resources\CategoriaPrendas\Pages\ViewCategoriaPrenda;
+use App\Filament\Admin\Resources\CategoriaPrendas\RelationManagers\PrendasRelationManager;
 use App\Filament\Admin\Resources\CategoriaPrendas\Schemas\CategoriaPrendaForm;
 use App\Filament\Admin\Resources\CategoriaPrendas\Schemas\CategoriaPrendaInfolist;
 use App\Filament\Admin\Resources\CategoriaPrendas\Tables\CategoriaPrendasTable;
@@ -42,7 +43,7 @@ class CategoriaPrendaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            PrendasRelationManager::class,
         ];
     }
 
