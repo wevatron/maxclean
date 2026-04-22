@@ -354,6 +354,11 @@ class PorEncargo extends Page
                     'total'       => $this->total,
                 ]);
 
+                $ticket->procesos()->create([
+                    'proceso' => 'lavado',
+                    'completado' => false,
+                ]);
+
                 foreach ($this->items as $item) {
                     $subtotalItem = $this->calcularSubtotalItem($item);
 
@@ -377,6 +382,16 @@ class PorEncargo extends Page
                     $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
                         'monto'       => $this->montoPago,
+                    ]);
+
+                    // 🎁 REGISTRAR PUNTOS DE RECOMPENSA
+                    \App\Models\Punto::create([
+                        'user_id'      => $this->clienteSeleccionadoId,
+                        'asignado_por' => auth()->id(),
+                        'puntos'       => (int) round($this->montoPago), // 1 punto por peso
+                        'fecha'        => now(),
+                        'tikete'       => $ticket->numero,
+                        'sucursal_id'  => $this->sucursalId,
                     ]);
 
                     $ticket->refresh();

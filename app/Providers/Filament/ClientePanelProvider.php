@@ -29,6 +29,7 @@ class ClientePanelProvider extends PanelProvider
         return $panel
             ->id('cliente')
             ->path('cliente')
+            ->login()
             ->colors([
                 'primary' => '#00AEEF',   // azul estilo Max&Clean
                 'gray'    => '#64748b',
@@ -39,14 +40,14 @@ class ClientePanelProvider extends PanelProvider
             ->globalSearch(false)
             ->discoverResources(in: app_path('Filament/Cliente/Resources'), for: 'App\Filament\Cliente\Resources')
             ->discoverPages(in: app_path('Filament/Cliente/Pages'), for: 'App\Filament\Cliente\Pages')
-          /*   ->pages([
+             ->pages([
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Cliente/Widgets'), for: 'App\Filament\Cliente\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
-            ]) */
+                /* AccountWidget::class,
+                FilamentInfoWidget::class, */
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -69,7 +70,6 @@ class ClientePanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-                EnsureUserIsCliente::class,
             ]);
     }
 }

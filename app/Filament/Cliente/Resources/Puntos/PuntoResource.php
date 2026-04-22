@@ -43,7 +43,9 @@ class PuntoResource extends Resource
     }
     public static function getPluralLabel(): string
     {
-        $total = Punto::where('user_id', auth()->id())->sum('puntos');
+        $total = Punto::where('user_id', auth()->id())
+            ->where('puntos', '>', 0)
+            ->sum('puntos');
 
         return "Mis puntos ({$total})";
     }
@@ -54,6 +56,10 @@ class PuntoResource extends Resource
         return 'Historial de puntos que has obtenido en tus visitas';
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('cliente');
+    }
     // ❌ No CRUD
     public static function canCreate(): bool
     {
@@ -90,7 +96,8 @@ class PuntoResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('user_id', auth()->id());
+            ->where('user_id', auth()->id())
+            ->where('puntos', '>', 0);
     }
 
     public static function getPages(): array

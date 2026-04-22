@@ -17,4 +17,14 @@ class TicketPago extends Model
     {
         return $this->belongsTo(Ticket::class);
     }
+
+    public function original()
+    {
+        return $this->belongsTo(self::class, 'pago_original_id');
+    }
+
+    public function cancelaciones()
+    {
+        return $this->hasMany(self::class, 'pago_original_id');
+    }
 }

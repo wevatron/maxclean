@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Resources\Tickets;
+namespace App\Filament\Cliente\Resources\Tickets;
 
-use App\Filament\Admin\Resources\TicketResource\Pages\ViewTicket;
-use App\Filament\Admin\Resources\Tickets\Pages\CreateTicket;
-use App\Filament\Admin\Resources\Tickets\Pages\EditTicket;
-use App\Filament\Admin\Resources\Tickets\Pages\ListTickets;
-use App\Filament\Admin\Resources\Tickets\Schemas\TicketForm;
-use App\Filament\Admin\Resources\Tickets\Tables\TicketsTable;
+use App\Filament\Cliente\Resources\Tickets\Pages\CreateTicket;
+use App\Filament\Cliente\Resources\Tickets\Pages\EditTicket;
+use App\Filament\Cliente\Resources\Tickets\Pages\ListTickets;
+use App\Filament\Cliente\Resources\Tickets\Schemas\TicketForm;
+use App\Filament\Cliente\Resources\Tickets\Tables\TicketsTable;
 use App\Models\Ticket;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -15,7 +14,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
 class TicketResource extends Resource
 {
@@ -24,6 +22,7 @@ class TicketResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
     protected static ?string $recordTitleAttribute = 'Ticket';
+    protected static ?string $pluralLabel = 'Mis Tickets';
 
     public static function form(Schema $schema): Schema
     {
@@ -42,24 +41,18 @@ class TicketResource extends Resource
         ];
     }
 
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->can('Clientes:Gestionar') || auth()->user()?->hasRole('super_admin');
-    }
+
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->visiblePara(Auth::user());
+            ->where('cliente_id', auth()->id());
     }
-
     public static function getPages(): array
     {
         return [
             'index' => ListTickets::route('/'),
-            'create' => CreateTicket::route('/create'),
-            'edit' => EditTicket::route('/{record}/edit'),
-            'view' => ViewTicket::route('/{record}'),
+            'view'  => Pages\ViewTicket::route('/{record}'),
         ];
     }
 }

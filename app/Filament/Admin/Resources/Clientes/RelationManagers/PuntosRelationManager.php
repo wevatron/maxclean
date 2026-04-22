@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Filament\Admin\Resources\ClienteResource\RelationManagers;
+namespace App\Filament\Admin\Resources\Clientes\RelationManagers;
 
 use App\Models\Sucursal;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -19,9 +22,17 @@ class PuntosRelationManager extends RelationManager
     protected static string $relationship = 'puntos';
 
     protected static ?string $title = 'Puntos del Cliente';
-    /**
-     * FORM — Filament 4 uses Schema instead of Form
-     */
+
+    public static function canViewForRecord($ownerRecord, string $pageClass): bool
+    {
+        return auth()->user()?->can('Clientes:Gestionar') ?? false;
+    }
+
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -30,68 +41,72 @@ class PuntosRelationManager extends RelationManager
                 ->numeric()
                 ->minValue(1)
                 ->required(),
+
             TextInput::make('tikete')
-                ->label('Numero/Folio de tikete')
-                ->numeric()
-                ->minValue(1)
-                ->required(),
-            Select::make('sucursal_id')
-                ->label('Sucursal')
-                ->options(Sucursal::pluck('nombre', 'id'))
-                ->searchable()
+                ->label('Número/Folio de tikete')
                 ->required(),
 
+            Select::make('sucursal_id')
+                ->label('Sucursal')
+                ->options(Sucursal::query()->pluck('nombre', 'id')->toArray())
+                ->searchable()
+                ->required(),
 
             Hidden::make('fecha')
                 ->default(now()),
 
             Hidden::make('asignado_por')
-                ->default(Auth::id()),
+                ->default(fn () => Auth::id()),
         ]);
     }
 
-    /**
-     * TABLE — still uses Table
-     */
     public function table(Table $table): Table
     {
+        $puedeGestionar = auth()->user()?->can('Clientes:Gestionar') ?? false;
+
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('puntos')
-                    ->label('Puntos'),
+                    ->label('Puntos')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('sucursal.nombre')
-                    ->label('Sucursal'),
+                    ->label('Sucursal')
+                    ->searchable(),
+
                 Tables\Columns\TextColumn::make('tikete')
-                    ->label('Tikete/folio'),
+                    ->label('Tikete/Folio')
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('fecha')
+                    ->label('Fecha')
                     ->dateTime('d/m/Y H:i')
-                    ->disabled()
-                    ->label('Fecha'),
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('asignador.name')
-                    ->label('Asignado por'),
+                    ->label('Asignado por')
+                    ->searchable(),
             ])
             ->headerActions([
                 CreateAction::make()
                     ->label('Agregar puntos')
-                    ->mutateFormDataUsing(function ($data) {
+                    ->visible($puedeGestionar)
+                    ->authorize($puedeGestionar)
+                    ->mutateFormDataUsing(function (array $data): array {
                         $data['asignado_por'] = Auth::id();
                         $data['fecha'] = now();
+
                         return $data;
                     }),
             ])
             ->actions([
-                EditAction::make(),
-                //DeleteAction::make(),
-            ])
-            ->bulkActions([
-                //DeleteBulkAction::make(),
+                EditAction::make()
+                    ->visible($puedeGestionar)
+                    ->authorize($puedeGestionar),
+
+                DeleteAction::make()
+                    ->visible($puedeGestionar)
+                    ->authorize($puedeGestionar),
             ]);
     }
-
-   public function isReadOnly(): bool
-{
-    return false;
-}
 }

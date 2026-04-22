@@ -6,10 +6,9 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
+use Illuminate\Support\Carbon;
 
 class TicketsTable
 {
@@ -20,40 +19,58 @@ class TicketsTable
 
                 TextColumn::make('numero')
                     ->label('Ticket')
-                    ->sortable()
                     ->searchable()
                     ->weight('bold'),
 
-                TextColumn::make('created_at')
-                    ->label('Fecha')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
 
-                TextColumn::make('operador.name')
-                    ->label('Operador')
+
+                TextColumn::make('created_at')
+                    ->label('Registro')
+                    ->formatStateUsing(
+                        fn($state) =>
+                        Carbon::parse($state)->translatedFormat('d M y · H:i')
+                    )
+                    ->toggleable()
+                    ->toggledHiddenByDefault(false),
+
+                TextColumn::make('updated_at')
+                    ->label('Actualizado')
+                    ->formatStateUsing(
+                        fn($state) =>
+                        Carbon::parse($state)->translatedFormat('d M y · H:i')
+                    )
+                    ->toggleable()
+                    ->toggledHiddenByDefault(false),
+
+                TextColumn::make('cliente.name')
+                    ->label('Cliente')
                     ->searchable(),
 
                 TextColumn::make('total')
-                    ->money('MXN')
-                    ->sortable(),
+                    ->money('MXN'),
 
                 TextColumn::make('pagado')
                     ->label('Pagado')
                     ->money('MXN')
+                    ->toggleable()
+                    ->toggledHiddenByDefault(true)
                     ->color('success'),
 
                 TextColumn::make('saldo')
                     ->label('Saldo')
                     ->money('MXN')
-                    ->color(fn ($record) =>
+                    ->color(
+                        fn($record) =>
                         $record->saldo > 0 ? 'danger' : 'success'
                     ),
 
                 BadgeColumn::make('status.nombre')
                     ->label('Estado')
+                    ->toggleable()
+                    ->toggledHiddenByDefault(true)
                     ->colors([
-                        'gray'    => fn ($record) => $record->saldo > 0,
-                        'success' => fn ($record) => $record->saldo <= 0,
+                        'gray'    => fn($record) => $record->saldo > 0,
+                        'success' => fn($record) => $record->saldo <= 0,
                     ]),
             ])
             ->defaultSort('id', 'desc')
@@ -66,16 +83,8 @@ class TicketsTable
 
             ->recordActions([
 
-                ViewAction::make(),
-
-                Action::make('registrarPago')
-                    ->label('Registrar pago')
-                    ->icon('heroicon-m-banknotes')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->saldo > 0)
-                    ->action(function ($record) {
-                        // después aquí abrimos modal
-                    }),
+                ViewAction::make()
+                    ->label('Gestionar'),
             ]);
     }
 }

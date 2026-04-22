@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Ticket extends Model
 {
@@ -57,7 +58,9 @@ class Ticket extends Model
 
     public function getPagadoAttribute()
     {
-        return $this->pagos()->sum('monto');
+        return $this->pagos()
+            ->where('metodo_pago', '!=', 'cancelado')
+            ->sum('monto');
     }
 
     public function getSaldoAttribute()
@@ -81,5 +84,26 @@ class Ticket extends Model
         }
 
         return $ultimo->numero + 1;
+    }
+
+
+
+    public function scopeVisiblePara(Builder $query, $user)
+    {
+        // 👑 Super admin ve todo
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // 👨‍💼 Si pertenece a sucursales
+        if ($user->sucursales()->exists()) {
+
+            $sucursalesIds = $user->sucursales()->pluck('sucursals.id');
+
+            return $query->whereIn('sucursal_id', $sucursalesIds);
+        }
+
+        // Si no tiene sucursales → no ve nada
+        return $query->whereRaw('1 = 0');
     }
 }

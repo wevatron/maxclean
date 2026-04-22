@@ -568,22 +568,6 @@
                         </span>
 
                         @if (!$esCancelado)
-                            <button wire:click="confirmarCancelacion({{ $pago->id }})"
-                                style="
-                                    background:#7f1d1d;
-                                    border:1px solid #b91c1c;
-                                    color:#ffffff;
-                                    padding:6px 12px;
-                                    border-radius:8px;
-                                    font-size:12px;
-                                    font-weight:600;
-                                    cursor:pointer;
-                                    transition:all .2s ease;
-                                "
-                                onmouseover="this.style.background='#991b1b'"
-                                onmouseout="this.style.background='#7f1d1d'">
-                                Cancelar
-                            </button>
                         @else
                             <span
                                 style="
@@ -645,18 +629,7 @@
                     <div style="display:flex; gap:12px; align-items:center;">
 
                         @if (!$completado)
-                            <button wire:click="confirmarProceso({{ $proceso->id }})"
-                                style="
-                            background:#16a34a;
-                            color:#fff;
-                            padding:6px 12px;
-                            border-radius:8px;
-                            font-size:12px;
-                            border:none;
-                            cursor:pointer;
-                        ">
-                                Marcar completado
-                            </button>
+                            
                         @else
                             <span
                                 style="
