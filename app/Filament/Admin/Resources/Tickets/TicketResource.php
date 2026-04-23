@@ -44,7 +44,12 @@ class TicketResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->can('Clientes:Gestionar') || auth()->user()?->hasRole('super_admin');
+        return auth()->user()?->can('Tickets:Gestionar') || auth()->user()?->hasRole('super_admin');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->can('Tickets:Gestionar') || auth()->user()?->hasRole('super_admin');
     }
 
     public static function getEloquentQuery(): Builder

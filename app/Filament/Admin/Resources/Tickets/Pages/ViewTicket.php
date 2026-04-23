@@ -465,4 +465,5 @@ class ViewTicket extends ViewRecord
             ->success()
             ->send();
     }
+    
 }

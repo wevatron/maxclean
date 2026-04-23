@@ -10,6 +10,7 @@ use App\Filament\Admin\Resources\CategoriaPrendas\RelationManagers\PrendasRelati
 use App\Filament\Admin\Resources\CategoriaPrendas\Schemas\CategoriaPrendaForm;
 use App\Filament\Admin\Resources\CategoriaPrendas\Schemas\CategoriaPrendaInfolist;
 use App\Filament\Admin\Resources\CategoriaPrendas\Tables\CategoriaPrendasTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\CategoriaPrenda;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -20,6 +21,8 @@ use Filament\Tables\Table;
 class CategoriaPrendaResource extends Resource
 {
     protected static ?string $model = CategoriaPrenda::class;
+    protected static ?string $cluster = CatalogosCluster::class;
+    protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

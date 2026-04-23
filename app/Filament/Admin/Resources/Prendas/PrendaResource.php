@@ -25,7 +25,7 @@ class PrendaResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Camera;
     protected static ?string $recordTitleAttribute = 'Prenda';
     protected static ?int $navigationSort = 3;
-/*     protected static ?string $cluster = CatalogosCluster::class; */
+    protected static ?string $cluster = CatalogosCluster::class;
 
     public static function form(Schema $schema): Schema
     {

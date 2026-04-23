@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\TipoMaquinas\Pages\ViewTipoMaquina;
 use App\Filament\Admin\Resources\TipoMaquinas\Schemas\TipoMaquinaForm;
 use App\Filament\Admin\Resources\TipoMaquinas\Schemas\TipoMaquinaInfolist;
 use App\Filament\Admin\Resources\TipoMaquinas\Tables\TipoMaquinasTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\TipoMaquina;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -19,6 +20,8 @@ use Filament\Tables\Table;
 class TipoMaquinaResource extends Resource
 {
     protected static ?string $model = TipoMaquina::class;
+    protected static ?string $cluster = CatalogosCluster::class;
+    protected static ?int $navigationSort = 4;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog;
 

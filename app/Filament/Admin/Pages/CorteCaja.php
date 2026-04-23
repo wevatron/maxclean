@@ -16,8 +16,8 @@ use Filament\Forms\Components\Select;
 class CorteCaja extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
-public $fechaBusqueda;
-public $corteSeleccionado;
+    public $fechaBusqueda;
+    public $corteSeleccionado;
     protected string $view = 'filament.admin.pages.corte-caja';
 
     public $fecha;
@@ -32,65 +32,81 @@ public $corteSeleccionado;
         $this->cargarPagos();
     }
 
-protected function getHeaderActions(): array
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('View:CorteCaja');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->can('View:CorteCaja');
+    }
+
+    /*     public static function canAccess(): bool
 {
-    return [
+   dd(auth()->user()->getAllPermissions()->pluck('name'));
+    return auth()->user()?->can('view_page_CorteCaja');
+} */
 
-        Action::make('descargar_corte_por_fecha')
-            ->label('Descargar Corte')
-            ->icon('heroicon-o-document-arrow-down')
-            ->color('gray')
-            ->form([
+    protected function getHeaderActions(): array
+    {
+        return [
 
-                DatePicker::make('fecha')
-                    ->label('Seleccionar Fecha')
-                    ->required()
-                    ->default(now()),
+            Action::make('descargar_corte_por_fecha')
+                ->label('Descargar Corte')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->form([
 
-                Select::make('corte_id')
-                    ->label('Corte Disponible')
-                    ->options(function (callable $get) {
+                    DatePicker::make('fecha')
+                        ->label('Seleccionar Fecha')
+                        ->required()
+                        ->default(now()),
 
-                        if (! $get('fecha')) {
-                            return [];
-                        }
+                    Select::make('corte_id')
+                        ->label('Corte Disponible')
+                        ->options(function (callable $get) {
 
-                        return CorteModel::query()
-                            ->whereDate('fecha', $get('fecha'))
-                            ->where('user_id', auth()->id())
-                            ->orderBy('turno')
-                            ->get()
-                            ->mapWithKeys(fn ($corte) => [
-                                $corte->id =>
+                            if (! $get('fecha')) {
+                                return [];
+                            }
+
+                            return CorteModel::query()
+                                ->whereDate('fecha', $get('fecha'))
+                                ->where('user_id', auth()->id())
+                                ->orderBy('turno')
+                                ->get()
+                                ->mapWithKeys(fn($corte) => [
+                                    $corte->id =>
                                     'Turno: ' .
-                                    ucfirst($corte->turno) .
-                                    ' | Total: $' .
-                                    number_format($corte->total, 2)
-                            ]);
-                    })
-                    ->searchable()
-                    ->required(),
+                                        ucfirst($corte->turno) .
+                                        ' | Total: $' .
+                                        number_format($corte->total, 2)
+                                ]);
+                        })
+                        ->searchable()
+                        ->required(),
 
-            ])
-            ->action(function (array $data) {
+                ])
+                ->action(function (array $data) {
 
-                $corte = CorteModel::find($data['corte_id']);
+                    $corte = CorteModel::find($data['corte_id']);
 
-                if (! $corte) {
-                    return;
-                }
+                    if (! $corte) {
+                        return;
+                    }
 
-                $corte->load('pagos', 'sucursal', 'operador');
+                    $corte->load('pagos', 'sucursal', 'operador');
 
-                return response()->streamDownload(function () use ($corte) {
-                    echo Pdf::loadView('pdf.corte-caja', [
-                        'corte' => $corte,
-                    ])->output();
-                }, 'corte-'.$corte->id.'.pdf');
-            }),
+                    return response()->streamDownload(function () use ($corte) {
+                        echo Pdf::loadView('pdf.corte-caja', [
+                            'corte' => $corte,
+                        ])->output();
+                    }, 'corte-' . $corte->id . '.pdf');
+                }),
 
-    ];
-}
+        ];
+    }
 
     public function cargarPagos(): void
     {

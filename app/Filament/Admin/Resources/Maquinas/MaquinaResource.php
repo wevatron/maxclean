@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\Maquinas\Pages\ViewMaquina;
 use App\Filament\Admin\Resources\Maquinas\Schemas\MaquinaForm;
 use App\Filament\Admin\Resources\Maquinas\Schemas\MaquinaInfolist;
 use App\Filament\Admin\Resources\Maquinas\Tables\MaquinasTable;
+use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Models\Maquina;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,7 +22,8 @@ class MaquinaResource extends Resource
     protected static ?string $model = Maquina::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCpuChip;
-
+    protected static ?string $cluster = CatalogosCluster::class;
+    protected static ?int $navigationSort = 5;
     protected static ?string $recordTitleAttribute = 'Maquinas';
     
 

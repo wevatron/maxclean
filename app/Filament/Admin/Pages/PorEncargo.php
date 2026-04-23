@@ -48,7 +48,7 @@ class PorEncargo extends Page
     public function mount()
     {
         $sucursales = auth()->user()->sucursales;
-
+//dd(auth()->user()->getAllPermissions()->pluck('name'));
         if ($sucursales->count() === 1) {
             $this->sucursalId = $sucursales->first()->id;
             $this->accesoValido = true;
@@ -455,7 +455,7 @@ class PorEncargo extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('Punto:Gestionar');
+        return auth()->user()?->can('View:PorEncargo');
     }
 
     public function toggleClientePanel()

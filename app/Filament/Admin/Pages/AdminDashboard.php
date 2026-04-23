@@ -3,12 +3,15 @@
 namespace App\Filament\Admin\Pages;
 
 use Filament\Pages\Page;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 
 class AdminDashboard extends Page
 {
     protected string $view = 'filament.admin.pages.admin-dashboard';
     public ?int $sucursalId = null;
     public ?string $camino = null;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCpuChip;
 
     /* =========================
         NIVEL 1
