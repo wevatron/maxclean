@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Resources\TicketResource\Pages;
+namespace App\Filament\Admin\Resources\Tickets\Pages;
 
 use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\TicketStatus;
@@ -72,6 +72,9 @@ class ViewTicket extends ViewRecord
                         $record->pagos()->create([
                             'metodo_pago' => $data['metodo_pago'],
                             'monto'       => $data['monto'],
+                            'user_id'     => auth()->id(),
+                            'sucursal_id' => $record->sucursal_id ?? auth()->user()->sucursal_id,
+                            'cancelado'   => false,
                         ]);
 
                         // 🎁 Crear puntos
@@ -119,7 +122,59 @@ class ViewTicket extends ViewRecord
             return;
         }
 
-        // 🔒 Validar entregado pagado
+        /*
+    |--------------------------------------------------------------------------
+    | 📌 ORDEN OFICIAL DE PROCESOS
+    |--------------------------------------------------------------------------
+    */
+
+        $ordenProcesos = [
+            'detallado',
+            'lavado',
+            'secado',
+            'doblado y empaquetado',
+            'entregado',
+        ];
+
+        $indexActual = array_search($proceso->proceso, $ordenProcesos);
+
+        if ($indexActual === false) {
+            return;
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | 🔒 VALIDAR ORDEN SECUENCIAL (NO SALTAR PROCESOS)
+    |--------------------------------------------------------------------------
+    */
+
+        if ($indexActual > 0) {
+
+            $procesoAnterior = $ordenProcesos[$indexActual - 1];
+
+            $anteriorCompletado = $this->record->procesos()
+                ->where('proceso', $procesoAnterior)
+                ->where('completado', true)
+                ->exists();
+
+            if (! $anteriorCompletado) {
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Proceso fuera de orden')
+                    ->body("Debes completar primero: " . ucfirst($procesoAnterior))
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | 🔒 VALIDAR ENTREGA PAGADA
+    |--------------------------------------------------------------------------
+    */
+
         if ($proceso->proceso === 'entregado' && $this->record->saldo > 0) {
 
             \Filament\Notifications\Notification::make()
@@ -130,6 +185,12 @@ class ViewTicket extends ViewRecord
 
             return;
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | ✅ MARCAR COMO COMPLETADO
+    |--------------------------------------------------------------------------
+    */
 
         $proceso->update([
             'completado' => true,
@@ -142,6 +203,10 @@ class ViewTicket extends ViewRecord
     */
 
         switch ($proceso->proceso) {
+
+            case 'detallado':
+                $this->record->update(['status_id' => 3]);
+                break;
 
             case 'lavado':
                 $this->record->update(['status_id' => 3]);
@@ -162,17 +227,7 @@ class ViewTicket extends ViewRecord
     |--------------------------------------------------------------------------
     */
 
-        $ordenProcesos = [
-            'lavado',
-            'secado',
-            'detallado',
-            'doblado y empaquetado',
-            'entregado',
-        ];
-
-        $indexActual = array_search($proceso->proceso, $ordenProcesos);
-
-        if ($indexActual !== false && isset($ordenProcesos[$indexActual + 1])) {
+        if (isset($ordenProcesos[$indexActual + 1])) {
 
             $siguiente = $ordenProcesos[$indexActual + 1];
 
@@ -194,18 +249,62 @@ class ViewTicket extends ViewRecord
     }
 
 
-    public function confirmarProceso($procesoId)
+    public function confirmarProceso(int $procesoId): void
     {
-        $proceso = $this->record->procesos()->find($procesoId);
+        $proceso = $this->record->procesos()->findOrFail($procesoId);
 
-        if (! $proceso || $proceso->completado) {
+        if (! $this->record->puedeCompletar($proceso->proceso)) {
             return;
         }
 
-        // 🚫 Validación especial para entregado
+        if ($proceso->completado) {
+            return;
+        }
+
+        $ordenProcesos = \App\Models\Ticket::ordenProcesos();
+
+        $indexActual = array_search($proceso->proceso, $ordenProcesos);
+
+        if ($indexActual === false) {
+            return;
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | 🔒 VALIDAR PROCESO ANTERIOR
+    |--------------------------------------------------------------------------
+    */
+
+        if ($indexActual > 0) {
+
+            $procesoAnteriorNombre = $ordenProcesos[$indexActual - 1];
+
+            $anteriorCompletado = $this->record->procesos()
+                ->where('proceso', $procesoAnteriorNombre)
+                ->where('completado', true)
+                ->exists();
+
+            if (! $anteriorCompletado) {
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Proceso fuera de orden')
+                    ->body("Debes completar primero: " . ucfirst($procesoAnteriorNombre))
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | 🔒 VALIDAR ENTREGA PAGADA
+    |--------------------------------------------------------------------------
+    */
+
         if ($proceso->proceso === 'entregado' && $this->record->saldo > 0) {
 
-            Notification::make()
+            \Filament\Notifications\Notification::make()
                 ->title('No se puede entregar')
                 ->body('El ticket aún tiene saldo pendiente.')
                 ->danger()
@@ -214,27 +313,67 @@ class ViewTicket extends ViewRecord
             return;
         }
 
-        Notification::make()
-            ->title('¿Marcar como completado?')
-            ->body('El proceso "' . ucfirst($proceso->proceso) . '" se marcará como finalizado.')
-            ->warning()
-            ->actions([
-                Action::make('confirmar')
-                    ->label('Sí, completar')
-                    ->color('success')
-                    ->button()
-                    ->dispatch('ejecutarProceso', ['procesoId' => $procesoId])
-                    ->close(),
+        /*
+    |--------------------------------------------------------------------------
+    | ✅ MARCAR COMO COMPLETADO
+    |--------------------------------------------------------------------------
+    */
 
-                Action::make('cancelar')
-                    ->label('No')
-                    ->color('gray')
-                    ->button()
-                    ->close(),
-            ])
+        $proceso->update([
+            'completado' => true,
+        ]);
+
+        /*
+    |--------------------------------------------------------------------------
+    | ➕ CREAR SIGUIENTE PROCESO
+    |--------------------------------------------------------------------------
+    */
+
+        if (isset($ordenProcesos[$indexActual + 1])) {
+
+            $siguiente = $ordenProcesos[$indexActual + 1];
+
+            if (! $this->record->procesos()->where('proceso', $siguiente)->exists()) {
+
+                $this->record->procesos()->create([
+                    'proceso' => $siguiente,
+                    'completado' => false,
+                ]);
+            }
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | 🎯 ACTUALIZAR STATUS
+    |--------------------------------------------------------------------------
+    */
+
+        switch ($proceso->proceso) {
+
+            case 'detallado':
+                $this->record->update(['status_id' => 2]);
+                break;
+
+            case 'lavado':
+                $this->record->update(['status_id' => 3]);
+                break;
+
+            case 'doblado y empaquetado':
+                $this->record->update(['status_id' => 4]);
+                break;
+
+            case 'entregado':
+                $this->record->update(['status_id' => 5]);
+                break;
+        }
+
+        $this->record->refresh();
+
+        \Filament\Notifications\Notification::make()
+            ->title('Proceso completado')
+            ->success()
             ->send();
     }
-
     public function confirmarCancelacion($pagoId)
     {
         Notification::make()
@@ -289,6 +428,7 @@ class ViewTicket extends ViewRecord
             $pago->update([
                 'metodo_pago' => 'cancelado',
                 'referencia'  => 'Pago cancelado manualmente',
+                'cancelado' => true,
             ]);
 
             // 🎁 Restar puntos

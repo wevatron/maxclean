@@ -24,7 +24,16 @@ class ListTickets extends ListRecords
     {
         return [
 
-
+            'detallado' => Tab::make('Detallado')
+                ->modifyQueryUsing(
+                    fn(Builder $query) =>
+                    $query->whereHas(
+                        'procesos',
+                        fn($q) =>
+                        $q->where('proceso', 'detallado')
+                            ->where('completado', false)
+                    )
+                ),
 
             'lavado' => Tab::make('Lavado')
                 ->modifyQueryUsing(
@@ -44,17 +53,6 @@ class ListTickets extends ListRecords
                         'procesos',
                         fn($q) =>
                         $q->where('proceso', 'secado')
-                            ->where('completado', false)
-                    )
-                ),
-
-            'detallado' => Tab::make('Detallado')
-                ->modifyQueryUsing(
-                    fn(Builder $query) =>
-                    $query->whereHas(
-                        'procesos',
-                        fn($q) =>
-                        $q->where('proceso', 'detallado')
                             ->where('completado', false)
                     )
                 ),

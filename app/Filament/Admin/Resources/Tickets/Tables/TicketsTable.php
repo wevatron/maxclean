@@ -20,9 +20,27 @@ class TicketsTable
                 TextColumn::make('numero')
                     ->label('Ticket')
                     ->searchable()
-                    ->weight('bold'),
-
-
+                    ->weight('bold')
+                    ->formatStateUsing(fn($state) => '#' . str_pad($state, 6, '0', STR_PAD_LEFT))
+                    ->badge(fn($record) => $record->tipo === 'encargo_express')
+                    ->color(
+                        fn($record) =>
+                        $record->tipo === 'encargo_express'
+                            ? 'warning'
+                            : null
+                    )
+                    ->icon(
+                        fn($record) =>
+                        $record->tipo === 'encargo_express'
+                            ? 'heroicon-o-bolt'
+                            : null
+                    )
+                    ->iconColor(
+                        fn($record) =>
+                        $record->tipo === 'encargo_express'
+                            ? 'warning'
+                            : null
+                    ),
 
                 TextColumn::make('created_at')
                     ->label('Registro')

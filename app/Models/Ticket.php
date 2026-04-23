@@ -106,4 +106,36 @@ class Ticket extends Model
         // Si no tiene sucursales → no ve nada
         return $query->whereRaw('1 = 0');
     }
+
+    public static function ordenProcesos(): array
+    {
+        return [
+            'detallado',
+            'lavado',
+            'secado',
+            'doblado y empaquetado',
+            'entregado',
+        ];
+    }
+    public function puedeCompletar(string $nombreProceso): bool
+{
+    $orden = self::ordenProcesos();
+
+    $index = array_search($nombreProceso, $orden);
+
+    if ($index === false) {
+        return false;
+    }
+
+    if ($index === 0) {
+        return true;
+    }
+
+    $anterior = $orden[$index - 1];
+
+    return $this->procesos()
+        ->where('proceso', $anterior)
+        ->where('completado', true)
+        ->exists();
+}
 }

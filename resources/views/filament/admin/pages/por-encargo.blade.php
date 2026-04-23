@@ -52,6 +52,12 @@
                                 <div style="font-weight:600; font-size:18px;">
                                     {{ $prenda->nombre }}
                                 </div>
+                                <div style="font-weight:600; font-size:11px; color:#05b302;">
+                                    {{ ucfirst($prenda->tamano) }}
+                                </div>
+                                <div style="font-weight:600; font-size:8px; color:#b7b7b7;">
+                                    {{ $prenda->descripcion }}
+                                </div>
 
                                 <div style="margin-top:10px; font-size:20px; font-weight:700; color:#0ea5e9;">
                                     ${{ number_format($precioMostrar, 2) }}
@@ -352,8 +358,8 @@
                         <button type="button" wire:click="abrirModalCobro"
                             style="
                                     width:100%;
-                                    padding:18px;
-                                    border-radius:18px;
+                                    padding:10px;
+                                    border-radius:13px;
                                     background:#22c55e;
                                     border:none;
                                     font-size:20px;

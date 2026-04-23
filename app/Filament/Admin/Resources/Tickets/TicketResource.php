@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Tickets;
 
-use App\Filament\Admin\Resources\TicketResource\Pages\ViewTicket;
+use App\Filament\Admin\Resources\Tickets\Pages\ViewTicket;
 use App\Filament\Admin\Resources\Tickets\Pages\CreateTicket;
 use App\Filament\Admin\Resources\Tickets\Pages\EditTicket;
 use App\Filament\Admin\Resources\Tickets\Pages\ListTickets;

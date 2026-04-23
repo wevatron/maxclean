@@ -621,7 +621,15 @@
                 Procesos
             </h3>
 
-            @forelse($record->procesos as $proceso)
+            @php
+                $ordenProcesos = \App\Models\Ticket::ordenProcesos();
+
+                $procesosOrdenados = $record->procesos->sortBy(function ($p) use ($ordenProcesos) {
+                    return array_search($p->proceso, $ordenProcesos);
+                });
+            @endphp
+
+            @forelse($procesosOrdenados as $proceso)
                 @php
                     $completado = $proceso->completado;
                 @endphp
@@ -643,18 +651,38 @@
                     </div>
 
                     <div style="display:flex; gap:12px; align-items:center;">
+                        @php
+                            $ordenProcesos = \App\Models\Ticket::ordenProcesos();
+                            $indexActual = array_search($proceso->proceso, $ordenProcesos);
+
+                            $puedeMarcar = true;
+
+                            if ($indexActual > 0) {
+                                $procesoAnterior = $ordenProcesos[$indexActual - 1];
+
+                                $puedeMarcar = $record->procesos
+                                    ->where('proceso', $procesoAnterior)
+                                    ->where('completado', true)
+                                    ->isNotEmpty();
+                            }
+                        @endphp
 
                         @if (!$completado)
-                            <button wire:click="confirmarProceso({{ $proceso->id }})"
-                                style="
-                            background:#16a34a;
-                            color:#fff;
-                            padding:6px 12px;
-                            border-radius:8px;
-                            font-size:12px;
-                            border:none;
-                            cursor:pointer;
-                        ">
+                            <button
+                                @if ($puedeMarcar) 
+                                    wire:click="confirmarProceso({{ $proceso->id }})"
+                                @else
+                                    disabled 
+                                @endif
+                                                        style="
+                                    background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
+                                    color:#fff;
+                                    padding:6px 12px;
+                                    border-radius:8px;
+                                    font-size:12px;
+                                    border:none;
+                                    cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
+                                ">
                                 Marcar completado
                             </button>
                         @else

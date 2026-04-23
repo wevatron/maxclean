@@ -355,7 +355,7 @@ class PorEncargo extends Page
                 ]);
 
                 $ticket->procesos()->create([
-                    'proceso' => 'lavado',
+                    'proceso' => 'detallado',
                     'completado' => false,
                 ]);
 
@@ -382,6 +382,9 @@ class PorEncargo extends Page
                     $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
                         'monto'       => $this->montoPago,
+                        'user_id'     => auth()->id(),
+                        'sucursal_id' => $this->sucursalId ?? auth()->user()->sucursal_id,
+                        'cancelado'   => false,
                     ]);
 
                     // 🎁 REGISTRAR PUNTOS DE RECOMPENSA
