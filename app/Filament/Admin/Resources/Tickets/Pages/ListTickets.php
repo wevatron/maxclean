@@ -68,6 +68,16 @@ class ListTickets extends ListRecords
                     )
                 ),
 
+            'por entregar' => Tab::make('Por entregar')
+                ->modifyQueryUsing(
+                    fn(Builder $query) =>
+                    $query->whereHas('procesos', function ($q) {
+
+                        $q->where('proceso', 'entregado')
+                            ->where('completado', false);
+                    })
+                ),
+
             'entregado' => Tab::make('Entregado')
                 ->modifyQueryUsing(
                     fn(Builder $query) =>
@@ -79,7 +89,7 @@ class ListTickets extends ListRecords
                     })
                 ),
 
-            'todos' => Tab::make('Todos'),
+           /*  'todos' => Tab::make('Todos'), */
         ];
     }
 }

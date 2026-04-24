@@ -12,6 +12,7 @@ use Filament\Actions\Action;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 
 class CorteCaja extends Page
 {
@@ -22,6 +23,9 @@ class CorteCaja extends Page
 
     public $fecha;
     public $turno = 'matutino';
+    protected $listeners = [
+        'ejecutarCierreTurno' => 'cerrarTurno',
+    ];
 
     public $resumen = [];
     public $pagos = [];
@@ -42,68 +46,73 @@ class CorteCaja extends Page
         return auth()->user()?->can('View:CorteCaja');
     }
 
-    /*     public static function canAccess(): bool
-{
-   dd(auth()->user()->getAllPermissions()->pluck('name'));
-    return auth()->user()?->can('view_page_CorteCaja');
-} */
+    public function confirmarCerrarTurno()
+    {
+        Notification::make()
+            ->title('¿Cerrar este turno?')
+            ->body('Esta acción cerrará el corte con los pagos pendientes del turno seleccionado.')
+            ->warning()
+            ->actions([
+                Action::make('confirmar')
+                    ->label('Sí, cerrar turno')
+                    ->color('success')
+                    ->button()
+                    ->dispatch('ejecutarCierreTurno')
+                    ->close(),
+
+                Action::make('cancelar')
+                    ->label('Cancelar')
+                    ->color('gray')
+                    ->button()
+                    ->close(),
+            ])
+            ->send();
+    }
 
     protected function getHeaderActions(): array
     {
         return [
 
-            Action::make('descargar_corte_por_fecha')
-                ->label('Descargar Corte')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('gray')
-                ->form([
+Action::make('descargar_corte_por_fecha')
+    ->label('Ver Corte')
+    ->icon('heroicon-o-document-text')
+    ->color('gray')
+    ->form([
+        DatePicker::make('fecha')
+            ->label('Seleccionar Fecha')
+            ->required()
+            ->default(now()),
 
-                    DatePicker::make('fecha')
-                        ->label('Seleccionar Fecha')
-                        ->required()
-                        ->default(now()),
+        Select::make('corte_id')
+            ->label('Corte Disponible')
+            ->options(function (callable $get) {
+                if (! $get('fecha')) {
+                    return [];
+                }
 
-                    Select::make('corte_id')
-                        ->label('Corte Disponible')
-                        ->options(function (callable $get) {
+                return CorteModel::query()
+                    ->whereDate('fecha', $get('fecha'))
+                    ->where('user_id', auth()->id())
+                    ->orderBy('turno')
+                    ->get()
+                    ->mapWithKeys(fn($corte) => [
+                        $corte->id =>
+                            'Turno: ' .
+                            ucfirst($corte->turno) .
+                            ' | Total: $' .
+                            number_format($corte->total, 2),
+                    ]);
+            })
+            ->searchable()
+            ->required(),
+    ])
+    ->action(function (array $data) {
+        $url = route('cortes-caja.pdf', [
+            'corte' => $data['corte_id'],
+        ]);
 
-                            if (! $get('fecha')) {
-                                return [];
-                            }
-
-                            return CorteModel::query()
-                                ->whereDate('fecha', $get('fecha'))
-                                ->where('user_id', auth()->id())
-                                ->orderBy('turno')
-                                ->get()
-                                ->mapWithKeys(fn($corte) => [
-                                    $corte->id =>
-                                    'Turno: ' .
-                                        ucfirst($corte->turno) .
-                                        ' | Total: $' .
-                                        number_format($corte->total, 2)
-                                ]);
-                        })
-                        ->searchable()
-                        ->required(),
-
-                ])
-                ->action(function (array $data) {
-
-                    $corte = CorteModel::find($data['corte_id']);
-
-                    if (! $corte) {
-                        return;
-                    }
-
-                    $corte->load('pagos', 'sucursal', 'operador');
-
-                    return response()->streamDownload(function () use ($corte) {
-                        echo Pdf::loadView('pdf.corte-caja', [
-                            'corte' => $corte,
-                        ])->output();
-                    }, 'corte-' . $corte->id . '.pdf');
-                }),
+        $this->js("window.open('{$url}', '_blank')");
+    }),
 
         ];
     }
@@ -127,31 +136,57 @@ class CorteCaja extends Page
 
     public function cerrarTurno(): void
     {
-        if (empty($this->pagos)) {
+        $this->cargarPagos();
+
+        if ($this->pagos->isEmpty()) {
+            Notification::make()
+                ->title('No hay pagos para cerrar')
+                ->body('No existen pagos pendientes para este turno.')
+                ->warning()
+                ->send();
+
             return;
         }
 
-        DB::transaction(function () {
+        $sucursalId = collect($this->pagos)
+            ->pluck('sucursal_id')
+            ->filter()
+            ->unique()
+            ->first();
 
-            $sucursalId = collect($this->pagos)->pluck('sucursal_id')->unique()->first();
+        if (! $sucursalId) {
+            Notification::make()
+                ->title('No se puede cerrar el turno')
+                ->body('Los pagos encontrados no tienen sucursal asignada.')
+                ->danger()
+                ->send();
 
+            return;
+        }
+
+        DB::transaction(function () use ($sucursalId) {
             $corte = CorteModel::create([
                 'sucursal_id' => $sucursalId,
                 'user_id' => auth()->id(),
                 'fecha' => $this->fecha,
                 'turno' => $this->turno,
-                'total' => $this->resumen['total'],
-                'total_efectivo' => $this->resumen['efectivo'],
-                'total_tarjeta' => $this->resumen['tarjeta'],
-                'total_transferencia' => $this->resumen['transferencia'],
+                'total' => $this->resumen['total'] ?? 0,
+                'total_efectivo' => $this->resumen['efectivo'] ?? 0,
+                'total_tarjeta' => $this->resumen['tarjeta'] ?? 0,
+                'total_transferencia' => $this->resumen['transferencia'] ?? 0,
                 'cerrado_en' => now(),
             ]);
 
             TicketPago::whereIn('id', collect($this->pagos)->pluck('id'))
                 ->update([
-                    'corte_id' => $corte->id
+                    'corte_id' => $corte->id,
                 ]);
         });
+
+        Notification::make()
+            ->title('Turno cerrado correctamente')
+            ->success()
+            ->send();
 
         $this->cargarPagos();
     }

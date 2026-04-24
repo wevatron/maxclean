@@ -15,6 +15,10 @@ class Ticket extends Model
         'numero',
         'tipo',
         'total',
+        'modo_por_kilo',
+        'kilos',
+        'tipo_lavado_kilo',
+        'precio_kilo',
     ];
 
     public function sucursal()
@@ -118,24 +122,24 @@ class Ticket extends Model
         ];
     }
     public function puedeCompletar(string $nombreProceso): bool
-{
-    $orden = self::ordenProcesos();
+    {
+        $orden = self::ordenProcesos();
 
-    $index = array_search($nombreProceso, $orden);
+        $index = array_search($nombreProceso, $orden);
 
-    if ($index === false) {
-        return false;
+        if ($index === false) {
+            return false;
+        }
+
+        if ($index === 0) {
+            return true;
+        }
+
+        $anterior = $orden[$index - 1];
+
+        return $this->procesos()
+            ->where('proceso', $anterior)
+            ->where('completado', true)
+            ->exists();
     }
-
-    if ($index === 0) {
-        return true;
-    }
-
-    $anterior = $orden[$index - 1];
-
-    return $this->procesos()
-        ->where('proceso', $anterior)
-        ->where('completado', true)
-        ->exists();
-}
 }

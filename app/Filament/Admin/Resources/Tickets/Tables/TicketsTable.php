@@ -42,6 +42,33 @@ class TicketsTable
                             : null
                     ),
 
+                TextColumn::make('tipo')
+                    ->label('Modo')
+                    ->badge()
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'encargo_express' => 'Express',
+                            'encargo_kilo' => 'Por kilo',
+                            'encargo' => 'Por encargo',
+                            default => ucfirst((string) $state),
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            'encargo_express' => 'warning',
+                            'encargo_kilo' => 'info',
+                            'encargo' => 'success',
+                            default => 'gray',
+                        };
+                    })
+                    ->icon(function ($state) {
+                        return match ($state) {
+                            'encargo_express' => 'heroicon-o-bolt',
+                            'encargo_kilo' => 'heroicon-o-scale',
+                            'encargo' => 'heroicon-o-shopping-bag',
+                            default => 'heroicon-o-question-mark-circle',
+                        };
+                    }),
                 TextColumn::make('created_at')
                     ->label('Registro')
                     ->formatStateUsing(

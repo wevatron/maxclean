@@ -99,6 +99,11 @@
             color: #cbd5e1;
         }
 
+        .aplica-badge-kilo {
+            background: #064e3b;
+            color: #a7f3d0;
+        }
+
         .explicacion-texto {
             margin-top: 6px;
             font-size: 12px;
@@ -151,6 +156,38 @@
 
     <div class="ticket-wrap">
 
+        @php
+            $tipoTicket = match ($record->tipo) {
+                'encargo_express' => 'ENCARGO EXPRESS',
+                'encargo_kilo' => 'POR KILO',
+                default => 'ENCARGO',
+            };
+
+            $tipoBg = match ($record->tipo) {
+                'encargo_express' => '#7c2d12',
+                'encargo_kilo' => '#064e3b',
+                default => '#1e3a5f',
+            };
+
+            $tipoColor = match ($record->tipo) {
+                'encargo_express' => '#fdba74',
+                'encargo_kilo' => '#a7f3d0',
+                default => '#bfdbfe',
+            };
+
+            $tipoTexto = match ($record->tipo) {
+                'encargo_express' => 'Encargo express',
+                'encargo_kilo' => 'Por kilo',
+                default => 'Encargo',
+            };
+
+            $tipoLavadoTexto = match ($record->tipo_lavado_kilo ?? null) {
+                'basico' => 'Básico',
+                'premium' => 'Premium',
+                'extra_lavado' => 'Extra lavado',
+                default => 'Sin especificar',
+            };
+        @endphp
         {{-- HEADER --}}
         <div class="ticket-header"
             style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; gap:20px; flex-wrap:wrap;">
@@ -165,7 +202,7 @@
                 </div>
 
                 <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-                    <span
+                    {{--                     <span
                         style="
                         background:{{ $record->tipo === 'encargo_express' ? '#7c2d12' : '#1e3a5f' }};
                         color:{{ $record->tipo === 'encargo_express' ? '#fdba74' : '#bfdbfe' }};
@@ -175,6 +212,18 @@
                         font-size:13px;
                     ">
                         {{ $record->tipo === 'encargo_express' ? 'ENCARGO EXPRESS' : 'ENCARGO' }}
+                    </span> --}}
+
+                    <span
+                        style="
+                            background:{{ $tipoBg }};
+                            color:{{ $tipoColor }};
+                            padding:8px 14px;
+                            border-radius:999px;
+                            font-weight:700;
+                            font-size:13px;
+                        ">
+                        {{ $tipoTicket }}
                     </span>
 
                     <span
@@ -248,7 +297,23 @@
 
                 <p style="color:#e6edf5; margin:0;">
                     <strong>Tipo:</strong>
-                    {{ $record->tipo === 'encargo_express' ? 'Encargo express' : 'Encargo' }}
+                    {{ $tipoTexto }}
+                    @if ($record->tipo === 'encargo_kilo')
+                        <p style="color:#e6edf5; margin:10px 0 0 0;">
+                            <strong>Kilos:</strong>
+                            {{ number_format((float) $record->kilos, 2) }} kg
+                        </p>
+
+                        <p style="color:#e6edf5; margin:10px 0 0 0;">
+                            <strong>Tipo de lavado:</strong>
+                            {{ $tipoLavadoTexto }}
+                        </p>
+
+                        <p style="color:#e6edf5; margin:10px 0 0 0;">
+                            <strong>Precio por kilo:</strong>
+                            ${{ number_format((float) $record->precio_kilo, 2) }}
+                        </p>
+                    @endif
                 </p>
             </div>
 
@@ -309,8 +374,17 @@
                                 $aplicacionTitulo = 'Precio normal';
                                 $aplicacionClase = 'aplica-badge-normal';
                                 $explicacion = 'Se cobró con precio regular por pieza.';
-
-                                if ($record->tipo === 'encargo_express') {
+                                if ($record->tipo === 'encargo_kilo') {
+                                    $aplicacionTitulo = 'Por kilo';
+                                    $aplicacionClase = 'aplica-badge-kilo';
+                                    $explicacion =
+                                        'Prenda registrada solo como control. El cobro fue por ' .
+                                        number_format((float) $record->kilos, 2) .
+                                        ' kg × $' .
+                                        number_format((float) $record->precio_kilo, 2) .
+                                        ' = $' .
+                                        number_format((float) $record->total, 2);
+                                } elseif ($record->tipo === 'encargo_express') {
                                     $aplicacionTitulo = 'Modo express';
                                     $aplicacionClase = 'aplica-badge-express';
 
@@ -415,7 +489,17 @@
                         $aplicacionClase = 'aplica-badge-normal';
                         $explicacion = 'Se cobró con precio regular por pieza.';
 
-                        if ($record->tipo === 'encargo_express') {
+                        if ($record->tipo === 'encargo_kilo') {
+                            $aplicacionTitulo = 'Por kilo';
+                            $aplicacionClase = 'aplica-badge-kilo';
+                            $explicacion =
+                                'Prenda registrada solo como control. El cobro fue por ' .
+                                number_format((float) $record->kilos, 2) .
+                                ' kg × $' .
+                                number_format((float) $record->precio_kilo, 2) .
+                                ' = $' .
+                                number_format((float) $record->total, 2);
+                        } elseif ($record->tipo === 'encargo_express') {
                             $aplicacionTitulo = 'Modo express';
                             $aplicacionClase = 'aplica-badge-express';
 
@@ -629,7 +713,6 @@
                     <div style="display:flex; gap:12px; align-items:center;">
 
                         @if (!$completado)
-                            
                         @else
                             <span
                                 style="

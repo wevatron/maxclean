@@ -2,31 +2,31 @@
 
 namespace App\Filament\Admin\Pages;
 
-use Filament\Pages\Page;
-use Illuminate\Support\Facades\DB;
 use App\Models\Prenda;
-use App\Models\Ticket;
-use App\Models\Servicio;
-use App\Models\TicketStatus;
 use App\Models\Sucursal;
 use App\Models\User as Cliente;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use BackedEnum;
+use Illuminate\Support\Facades\DB;
+use App\Models\Ticket;
+use App\Models\TicketStatus;
 
-class PorEncargo extends Page
+class PorKilo extends Page
 {
-    public $modoExpress = false;
-    protected string $view = 'filament.admin.pages.por-encargo';
-    protected static ?string $navigationLabel = 'Por encargo';
+    protected string $view = 'filament.admin.pages.por-kilo';
+
+    protected static ?string $navigationLabel = 'Por kilo';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
+
     public $clientePanelAbierto = true;
 
     public $sucursalId;
     public $items = [];
     public $total = 0;
     public $search = '';
-    public $servicioSeleccionado;
     public $prendas = [];
 
     public $montoPago = 0;
@@ -45,22 +45,25 @@ class PorEncargo extends Page
     public $clienteSeleccionadoId = null;
     public $clienteSeleccionadoNombre = null;
 
+    public $kilos = null;
+    public $tipoLavado = 'basico';
+
     public function mount()
     {
         $sucursales = auth()->user()->sucursales;
-        
+
         if ($sucursales->count() === 1) {
             $this->sucursalId = $sucursales->first()->id;
             $this->accesoValido = true;
-
-            $this->servicioSeleccionado = Servicio::where('activo', true)->first()?->id;
             $this->cargarPrendas();
         } elseif ($sucursales->count() === 0) {
             $this->mensajeAcceso = 'No tiene sucursal asignada.';
         } else {
             $this->mensajeAcceso = 'Tiene más de una sucursal asignada.';
         }
+
         $this->clientePanelAbierto = true;
+        $this->calcularTotal();
     }
 
     public function updatedSearch()
@@ -75,13 +78,7 @@ class PorEncargo extends Page
             return;
         }
 
-        $sucursalId = $this->sucursalId;
-
-        $this->prendas = Prenda::with([
-            'precios' => function ($query) use ($sucursalId) {
-                $query->where('sucursal_id', $sucursalId);
-            }
-        ])
+        $this->prendas = Prenda::query()
             ->where('nombre', 'like', "%{$this->search}%")
             ->limit(9)
             ->get();
@@ -138,54 +135,29 @@ class PorEncargo extends Page
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
     }
+
     public function agregarPrenda($id)
     {
-        $prenda = Prenda::with([
-            'precios' => function ($query) {
-                $query->where('sucursal_id', $this->sucursalId);
-            }
-        ])->find($id);
+        $prenda = Prenda::find($id);
 
         if (! $prenda) {
-            return;
-        }
-
-        $precioRelacion = $prenda->precios->first();
-
-        $precioNormal = $precioRelacion?->precio_normal;
-        $precioExpress = $precioRelacion?->precio_express ?? 0;
-        $precioPaquete = $precioRelacion?->precio_paquete ?? 0;
-        $piezasPorPaquete = $precioRelacion?->piezas_por_paquete ?? 0;
-
-        if (! $precioNormal) {
-            Notification::make()
-                ->title('Esta prenda no tiene precio configurado en esta sucursal')
-                ->danger()
-                ->send();
             return;
         }
 
         foreach ($this->items as $index => $item) {
             if ($item['prenda_id'] == $id) {
                 $this->items[$index]['cantidad']++;
-                $this->calcularTotal();
                 return;
             }
         }
 
         $this->items[] = [
-            'prenda_id'          => $id,
-            'nombre'             => $prenda->nombre,
-            'precio'             => $precioNormal,
-            'precio_normal'      => $precioNormal,
-            'precio_express'     => $precioExpress,
-            'precio_paquete'     => $precioPaquete,
-            'piezas_por_paquete' => $piezasPorPaquete,
-            'cantidad'           => 1,
+            'prenda_id' => $id,
+            'nombre' => $prenda->nombre,
+            'cantidad' => 1,
         ];
-
-        $this->calcularTotal();
     }
+
     public function eliminarItem($index)
     {
         if (! isset($this->items[$index])) {
@@ -198,46 +170,31 @@ class PorEncargo extends Page
             unset($this->items[$index]);
             $this->items = array_values($this->items);
         }
+    }
 
+    public function getPrecioPorKilo(): float
+    {
+        return match ($this->tipoLavado) {
+            'premium' => 25,
+            'extra_lavado' => 30,
+            default => 20,
+        };
+    }
+
+    public function updatedKilos()
+    {
+        $this->calcularTotal();
+    }
+
+    public function updatedTipoLavado()
+    {
         $this->calcularTotal();
     }
 
     public function calcularTotal()
     {
-        $this->total = collect($this->items)->sum(
-            fn($item) => $this->calcularSubtotalItem($item)
-        );
-    }
-
-    protected function calcularSubtotalItem(array $item): float
-    {
-        $cantidad = (int) ($item['cantidad'] ?? 0);
-        $precioNormal = (float) ($item['precio_normal'] ?? $item['precio'] ?? 0);
-        $precioExpress = (float) ($item['precio_express'] ?? 0);
-        $precioPaquete = (float) ($item['precio_paquete'] ?? 0);
-        $piezasPorPaquete = (int) ($item['piezas_por_paquete'] ?? 0);
-
-        if ($this->modoExpress) {
-            if ($precioExpress <= 0) {
-                return $cantidad * $precioNormal;
-            }
-
-            return $cantidad * $precioExpress;
-        }
-
-        if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
-            $paquetes = intdiv($cantidad, $piezasPorPaquete);
-            $sueltas = $cantidad % $piezasPorPaquete;
-
-            return ($paquetes * $precioPaquete) + ($sueltas * $precioNormal);
-        }
-
-        return $cantidad * $precioNormal;
-    }
-
-    public function updatedModoExpress()
-    {
-        $this->calcularTotal();
+        $kilos = (float) ($this->kilos ?: 0);
+        $this->total = round($kilos * $this->getPrecioPorKilo(), 2);
     }
 
     public function abrirModalCobro()
@@ -258,6 +215,7 @@ class PorEncargo extends Page
             return;
         }
 
+        $this->calcularTotal();
         $this->montoTemporal = $this->total;
         $this->modalCobroAbierto = true;
     }
@@ -274,16 +232,28 @@ class PorEncargo extends Page
 
     public function montoMitad()
     {
+        $this->calcularTotal();
         $this->montoTemporal = round($this->total / 2, 2);
     }
 
     public function montoTotal()
     {
+        $this->calcularTotal();
         $this->montoTemporal = $this->total;
     }
 
     public function confirmarCobro()
     {
+        $this->calcularTotal();
+
+        if ((float) $this->kilos <= 0) {
+            Notification::make()
+                ->title('Debes capturar los kilos')
+                ->danger()
+                ->send();
+            return;
+        }
+
         if ($this->montoTemporal < 0) {
             Notification::make()
                 ->title('Monto inválido')
@@ -328,6 +298,16 @@ class PorEncargo extends Page
             return;
         }
 
+        if ((float) $this->kilos <= 0) {
+            Notification::make()
+                ->title('Debes capturar los kilos')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $this->calcularTotal();
+
         $this->procesando = true;
 
         try {
@@ -335,7 +315,7 @@ class PorEncargo extends Page
                 $numero = Ticket::generarNumero($this->sucursalId);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
-                $statusPagadoId   = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
+                $statusPagadoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
 
                 if (! $statusRecibidoId) {
                     throw new \Exception('No existe el status "recibido" en ticket_statuses.');
@@ -344,14 +324,20 @@ class PorEncargo extends Page
                 if (! $statusPagadoId) {
                     throw new \Exception('No existe el status "pagado" en ticket_statuses.');
                 }
+
                 $ticket = Ticket::create([
                     'sucursal_id' => $this->sucursalId,
-                    'user_id'     => auth()->id(),
-                    'cliente_id'  => $this->clienteSeleccionadoId,
-                    'status_id'   => $statusRecibidoId,
-                    'numero'      => $numero,
-                    'tipo'        => $this->modoExpress ? 'encargo_express' : 'encargo',
-                    'total'       => $this->total,
+                    'user_id' => auth()->id(),
+                    'cliente_id' => $this->clienteSeleccionadoId,
+                    'status_id' => $statusRecibidoId,
+                    'numero' => $numero,
+                    'tipo' => 'encargo_kilo',
+                    'total' => $this->total,
+
+                    'modo_por_kilo' => true,
+                    'kilos' => (float) $this->kilos,
+                    'tipo_lavado_kilo' => $this->tipoLavado,
+                    'precio_kilo' => $this->getPrecioPorKilo(),
                 ]);
 
                 $ticket->procesos()->create([
@@ -360,41 +346,30 @@ class PorEncargo extends Page
                 ]);
 
                 foreach ($this->items as $item) {
-                    $subtotalItem = $this->calcularSubtotalItem($item);
-
-                    $precioUnitario = $this->modoExpress
-                        ? ($item['precio_express'] ?? $item['precio_normal'] ?? $item['precio'])
-                        : ($item['precio_normal'] ?? $item['precio']);
-
                     $ticket->items()->create([
-                        'prenda_id'       => $item['prenda_id'],
-                        'cantidad'        => $item['cantidad'],
-                        'precio_unitario' => $precioUnitario,
-                        'subtotal'        => $subtotalItem,
+                        'prenda_id' => $item['prenda_id'],
+                        'cantidad' => $item['cantidad'],
+                        'precio_unitario' => 0,
+                        'subtotal' => 0,
                     ]);
-                }
-
-                if ($this->servicioSeleccionado) {
-                    $ticket->servicios()->attach($this->servicioSeleccionado);
                 }
 
                 if ($this->montoPago > 0) {
                     $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
-                        'monto'       => $this->montoPago,
-                        'user_id'     => auth()->id(),
+                        'monto' => $this->montoPago,
+                        'user_id' => auth()->id(),
                         'sucursal_id' => $this->sucursalId ?? auth()->user()->sucursal_id,
-                        'cancelado'   => false,
+                        'cancelado' => false,
                     ]);
 
-                    // 🎁 REGISTRAR PUNTOS DE RECOMPENSA
                     \App\Models\Punto::create([
-                        'user_id'      => $this->clienteSeleccionadoId,
+                        'user_id' => $this->clienteSeleccionadoId,
                         'asignado_por' => auth()->id(),
-                        'puntos'       => (int) round($this->montoPago), // 1 punto por peso
-                        'fecha'        => now(),
-                        'tikete'       => $ticket->numero,
-                        'sucursal_id'  => $this->sucursalId,
+                        'puntos' => (int) round($this->montoPago),
+                        'fecha' => now(),
+                        'tikete' => $ticket->numero,
+                        'sucursal_id' => $this->sucursalId,
                     ]);
 
                     $ticket->refresh();
@@ -423,13 +398,16 @@ class PorEncargo extends Page
                 'clienteSeleccionadoId',
                 'clienteSeleccionadoNombre',
                 'clientePanelAbierto',
-                'modoExpress',
+                'kilos',
+                'tipoLavado',
             ]);
-            $this->modoExpress = false;
+
+            $this->tipoLavado = 'basico';
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
             $this->modalCobroAbierto = false;
-            $this->servicioSeleccionado = Servicio::where('activo', true)->first()?->id;
+
+            $this->calcularTotal();
             $this->cargarPrendas();
         } catch (\Throwable $e) {
             Notification::make()
@@ -455,6 +433,8 @@ class PorEncargo extends Page
 
     public static function canAccess(): bool
     {
+        // Para probar rápido usamos el mismo permiso actual.
+        // Luego, si quieres, lo cambiamos a View:PorKilo
         return auth()->user()?->can('View:PorEncargo');
     }
 

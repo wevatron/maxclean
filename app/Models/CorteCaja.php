@@ -8,7 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class CorteCaja extends Model
 {
 
-protected $table = 'cortes_caja'; // 👈 IMPORTANTE
+    protected $table = 'cortes_caja'; // 👈 IMPORTANTE
     protected $fillable = [
         'sucursal_id',
         'user_id',
@@ -27,13 +27,17 @@ protected $table = 'cortes_caja'; // 👈 IMPORTANTE
     ];
 
     public function generarPdf()
-{
-    $this->load('pagos', 'sucursal', 'operador');
+    {
+        $this->load([
+            'pagos.ticket.cliente',
+            'sucursal',
+            'operador',
+        ]);
 
-    return Pdf::loadView('pdf.corte-caja', [
-        'corte' => $this,
-    ])->download('corte-'.$this->id.'.pdf');
-}
+        return Pdf::loadView('pdf.corte-caja', [
+            'corte' => $this,
+        ])->stream('corte-' . $this->id . '.pdf');
+    }
 
     public function pagos()
     {
