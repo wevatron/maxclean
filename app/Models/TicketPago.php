@@ -3,27 +3,52 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TicketPago extends Model
 {
-protected $fillable = [
-    'ticket_id',
-    'metodo_pago',
-    'monto',
-    'referencia',
-    'cancelado',
-    'user_id',
-    'sucursal_id',
-    'corte_id',
-];
+    protected $fillable = [
+        'ticket_id',
+        'proveedor_id',
+        'metodo_pago',
+        'monto',
+        'referencia',
+        'cancelado',
+        'user_id',
+        'sucursal_id',
+        'tipo_movimiento',
+        'categoria',
+        'descripcion',
+        'corte_id',
+    ];
 
-    public function ticket()
+    protected $casts = [
+        'cancelado' => 'boolean',
+        'monto' => 'decimal:2',
+    ];
+
+    public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);
     }
 
-    public function corte()
-{
-    return $this->belongsTo(CorteCaja::class, 'corte_id');
-}
+    public function proveedor(): BelongsTo
+    {
+        return $this->belongsTo(Proveedor::class);
+    }
+
+    public function corte(): BelongsTo
+    {
+        return $this->belongsTo(CorteCaja::class, 'corte_id');
+    }
+
+    public function operador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class);
+    }
 }

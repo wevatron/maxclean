@@ -385,6 +385,7 @@ class PorEncargo extends Page
                         'user_id'     => auth()->id(),
                         'sucursal_id' => $this->sucursalId ?? auth()->user()->sucursal_id,
                         'cancelado'   => false,
+                        'tipo_movimiento' => 'venta',
                     ]);
 
                     // 🎁 REGISTRAR PUNTOS DE RECOMPENSA

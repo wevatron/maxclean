@@ -1,206 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <title>Corte de Caja</title>
-
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            color: #111;
+            color: #111827;
+            margin: 0;
+            padding: 0;
         }
 
-        h1 {
+        .container {
+            padding: 30px;
+        }
+
+        .header {
+            margin-bottom: 25px;
+        }
+
+        .title {
             font-size: 22px;
-            margin-bottom: 4px;
+            font-weight: bold;
+            margin-bottom: 8px;
         }
 
-        .muted {
-            color: #666;
-            font-size: 11px;
-        }
-
-        .box {
-            border: 1px solid #ddd;
-            padding: 12px;
-            margin-bottom: 14px;
-            border-radius: 6px;
+        .meta {
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.6;
         }
 
         .summary {
             width: 100%;
-            margin-bottom: 16px;
+            margin-bottom: 25px;
+            border-collapse: separate;
+            border-spacing: 10px 0;
         }
 
         .summary td {
-            border: 1px solid #ddd;
-            padding: 10px;
             width: 25%;
+            padding: 14px;
+            border-radius: 8px;
+            vertical-align: top;
         }
 
-        table {
+        .box-gray { background: #f3f4f6; }
+        .box-green { background: #ecfdf5; }
+        .box-red { background: #fee2e2; }
+        .box-blue { background: #e0f2fe; }
+
+        .label {
+            font-size: 11px;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        table.main {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 10px;
         }
 
-        th {
-            background: #f2f2f2;
-            text-align: left;
+        table.main th {
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
             padding: 8px;
-            border: 1px solid #ddd;
+            text-align: left;
             font-size: 11px;
         }
 
-        td {
-            padding: 7px;
-            border: 1px solid #ddd;
-            vertical-align: top;
+        table.main td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
             font-size: 11px;
         }
 
-        .right {
+        .text-right {
             text-align: right;
         }
 
-        .total {
-            font-weight: bold;
-            font-size: 13px;
+        .text-center {
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 11px;
+            color: #6b7280;
         }
     </style>
 </head>
-
 <body>
-    <div style="width:100%; margin-bottom:14px;">
-        <div style="float:left; width:140px;">
-            <img
-                src="{{ public_path('img/logo.png') }}"
-                style="width:130px; height:auto;"
-            >
-        </div>
+    <div class="container">
 
-        <div style="margin-left:160px;">
-            <h1>Corte de Caja #{{ $corte->id }}</h1>
+        <div class="header">
+            <div class="title">Corte de Caja #{{ $corte->id }}</div>
 
-            <div class="muted">
-                Fecha: {{ $corte->fecha?->format('d/m/Y') }} |
-                Turno: {{ ucfirst($corte->turno) }} |
-                Sucursal: {{ $corte->sucursal->nombre ?? 'Sin sucursal' }} |
-                Operador: {{ $corte->operador->name ?? 'Sin operador' }}
+            <div class="meta">
+                <strong>Fecha:</strong> {{ \Carbon\Carbon::parse($corte->fecha)->format('d/m/Y') }}<br>
+                <strong>Turno:</strong> {{ ucfirst($corte->turno) }}<br>
+                <strong>Sucursal:</strong> {{ $corte->sucursal->nombre ?? 'N/A' }}<br>
+                <strong>Operador:</strong> {{ $corte->operador->name ?? 'N/A' }}<br>
+                <strong>Cerrado en:</strong> {{ $corte->cerrado_en ? \Carbon\Carbon::parse($corte->cerrado_en)->format('d/m/Y H:i') : 'N/A' }}
             </div>
         </div>
 
-        <div style="clear:both;"></div>
-    </div>
+        @php
+            $pagos = $corte->pagos ?? collect();
 
-    <br>
+            $ventas = $pagos->filter(fn ($p) => ($p->tipo_movimiento ?? 'venta') === 'venta')->sum('monto');
+            $dotaciones = $pagos->where('tipo_movimiento', 'dotacion')->sum('monto');
+            $gastos = $pagos->where('tipo_movimiento', 'gasto')->sum('monto');
+            $saldo = ($ventas + $dotaciones) - $gastos;
+        @endphp
 
-    <table class="summary">
-        <tr>
-            <td>
-                <strong>Total</strong><br>
-                ${{ number_format($corte->total ?? 0, 2) }}
-            </td>
-            <td>
-                <strong>Efectivo</strong><br>
-                ${{ number_format($corte->total_efectivo ?? 0, 2) }}
-            </td>
-            <td>
-                <strong>Tarjeta</strong><br>
-                ${{ number_format($corte->total_tarjeta ?? 0, 2) }}
-            </td>
-            <td>
-                <strong>Transferencia</strong><br>
-                ${{ number_format($corte->total_transferencia ?? 0, 2) }}
-            </td>
-        </tr>
-    </table>
-
-    <h3>Pagos incluidos</h3>
-
-    <table>
-        <thead>
+        <table class="summary">
             <tr>
-                <th>Ticket</th>
-                <th>Cliente</th>
-                <th>Modo</th>
-                <th>Lavado</th>
-                <th>Pago</th>
-                <th class="right">Monto</th>
-                <th>Hora</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            @forelse ($corte->pagos as $pago)
-                @php
-                    $ticket = $pago->ticket;
-
-                    $modoTexto = match ($ticket?->tipo) {
-                        'encargo_express' => 'Express',
-                        'encargo_kilo' => 'Por kilo',
-                        default => 'Por encargo',
-                    };
-
-                    $lavadoTexto = match ($ticket?->tipo_lavado_kilo) {
-                        'basico' => 'Básico',
-                        'premium' => 'Premium',
-                        'extra_lavado' => 'Extra lavado',
-                        default => '-',
-                    };
-                @endphp
-
-                <tr>
-                    <td>
-                        @if ($ticket)
-                            #{{ str_pad($ticket->numero, 6, '0', STR_PAD_LEFT) }}
-                        @else
-                            Sin ticket
-                        @endif
-                    </td>
-
-                    <td>{{ $ticket?->cliente?->name ?? 'Sin cliente' }}</td>
-
-                    <td>{{ $modoTexto }}</td>
-
-                    <td>
-                        @if ($ticket?->tipo === 'encargo_kilo')
-                            {{ $lavadoTexto }}<br>
-                            {{ number_format((float) $ticket?->kilos, 2) }} kg<br>
-                            ${{ number_format((float) $ticket?->precio_kilo, 2) }}/kg
-                        @else
-                            -
-                        @endif
-                    </td>
-
-                    <td>{{ ucfirst($pago->metodo_pago) }}</td>
-
-                    <td class="right">
-                        ${{ number_format($pago->monto, 2) }}
-                    </td>
-
-                    <td>
-                        {{ $pago->created_at?->format('H:i') }}
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" style="text-align:center;">
-                        No hay pagos en este corte.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-
-        <tfoot>
-            <tr>
-                <td colspan="5" class="right total">Total</td>
-                <td class="right total">
-                    ${{ number_format($corte->pagos->sum('monto'), 2) }}
+                <td class="box-gray">
+                    <div class="label">Ventas</div>
+                    <div class="value">${{ number_format($ventas, 2) }}</div>
                 </td>
-                <td></td>
+
+                <td class="box-green">
+                    <div class="label">Dotaciones</div>
+                    <div class="value">${{ number_format($dotaciones, 2) }}</div>
+                </td>
+
+                <td class="box-red">
+                    <div class="label">Gastos</div>
+                    <div class="value">${{ number_format($gastos, 2) }}</div>
+                </td>
+
+                <td class="box-blue">
+                    <div class="label">Saldo en Caja</div>
+                    <div class="value">${{ number_format($saldo, 2) }}</div>
+                </td>
             </tr>
-        </tfoot>
-    </table>
+        </table>
+
+        <table class="main">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Método de pago</th>
+                    <th>Descripción</th>
+                    <th class="text-right">Monto</th>
+                    <th class="text-center">Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($pagos as $pago)
+                    <tr>
+                        <td>
+                            {{ ucfirst($pago->tipo_movimiento ?? 'venta') }}
+                        </td>
+                        <td>
+                            {{ $pago->metodo_pago ?? '-' }}
+                        </td>
+                        <td>
+                            {{ $pago->descripcion ?? $pago->ticket->tipo ?? '-' }}
+                        </td>
+                        <td class="text-right">
+                            ${{ number_format($pago->monto, 2) }}
+                        </td>
+                        <td class="text-center">
+                            {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            No hay movimientos registrados en este corte.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        <div class="footer">
+            Documento generado automáticamente por el sistema.
+        </div>
+    </div>
 </body>
 </html>

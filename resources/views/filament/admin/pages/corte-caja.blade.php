@@ -62,20 +62,20 @@
             border: 1px solid transparent;
         }
 
-        .corte-summary-total {
+        .corte-summary-ventas {
             background: #f3f4f6;
         }
 
-        .corte-summary-efectivo {
+        .corte-summary-dotaciones {
             background: #ecfdf5;
         }
 
-        .corte-summary-tarjeta {
-            background: #eff6ff;
+        .corte-summary-gastos {
+            background: #fee2e2;
         }
 
-        .corte-summary-transferencia {
-            background: #f5f3ff;
+        .corte-summary-saldo {
+            background: #eff6ff;
         }
 
         .corte-summary-label {
@@ -115,6 +115,7 @@
         .corte-table td {
             padding: 12px;
             color: #111827;
+            vertical-align: top;
         }
 
         .corte-table tr {
@@ -125,6 +126,12 @@
             padding: 25px;
             text-align: center;
             color: #9ca3af !important;
+        }
+
+        .corte-subtext {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -158,20 +165,20 @@
                 border-color: #334155;
             }
 
-            .corte-summary-total {
+            .corte-summary-ventas {
                 background: #1f2937;
             }
 
-            .corte-summary-efectivo {
+            .corte-summary-dotaciones {
                 background: #052e1b;
             }
 
-            .corte-summary-tarjeta {
-                background: #102a43;
+            .corte-summary-gastos {
+                background: #3f1d1d;
             }
 
-            .corte-summary-transferencia {
-                background: #2e1065;
+            .corte-summary-saldo {
+                background: #102a43;
             }
 
             .corte-summary-value {
@@ -200,6 +207,10 @@
 
             .corte-table tr {
                 border-top-color: #334155;
+            }
+
+            .corte-subtext {
+                color: #94a3b8;
             }
         }
 
@@ -264,42 +275,41 @@
             </div>
 
             {{-- RESUMEN --}}
-            <div
-                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:40px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:40px;">
 
-                <div class="corte-summary corte-summary-total">
+                <div class="corte-summary corte-summary-ventas">
                     <div class="corte-summary-label" style="color:#6b7280;">
-                        Total
+                        Ventas
                     </div>
                     <div class="corte-summary-value">
-                        ${{ number_format($resumen['total'] ?? 0, 2) }}
+                        ${{ number_format($resumen['ventas'] ?? 0, 2) }}
                     </div>
                 </div>
 
-                <div class="corte-summary corte-summary-efectivo">
+                <div class="corte-summary corte-summary-dotaciones">
                     <div class="corte-summary-label" style="color:#15803d;">
-                        Efectivo
+                        Dotaciones
                     </div>
                     <div class="corte-summary-value">
-                        ${{ number_format($resumen['efectivo'] ?? 0, 2) }}
+                        ${{ number_format($resumen['dotaciones'] ?? 0, 2) }}
                     </div>
                 </div>
 
-                <div class="corte-summary corte-summary-tarjeta">
+                <div class="corte-summary corte-summary-gastos">
+                    <div class="corte-summary-label" style="color:#b91c1c;">
+                        Gastos
+                    </div>
+                    <div class="corte-summary-value">
+                        ${{ number_format($resumen['gastos'] ?? 0, 2) }}
+                    </div>
+                </div>
+
+                <div class="corte-summary corte-summary-saldo">
                     <div class="corte-summary-label" style="color:#1d4ed8;">
-                        Tarjeta
+                        Saldo en caja
                     </div>
                     <div class="corte-summary-value">
-                        ${{ number_format($resumen['tarjeta'] ?? 0, 2) }}
-                    </div>
-                </div>
-
-                <div class="corte-summary corte-summary-transferencia">
-                    <div class="corte-summary-label" style="color:#8b5cf6;">
-                        Transferencia
-                    </div>
-                    <div class="corte-summary-value">
-                        ${{ number_format($resumen['transferencia'] ?? 0, 2) }}
+                        ${{ number_format($resumen['saldo'] ?? 0, 2) }}
                     </div>
                 </div>
 
@@ -313,7 +323,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Ticket</th>
-                            <th>Modo</th>
+                            <th>Movimiento</th>
                             <th>Método</th>
                             <th>Monto</th>
                             <th>Hora</th>
@@ -322,55 +332,69 @@
 
                     <tbody>
                         @forelse($pagos as $pago)
+                            @php
+                                $tipoMovimiento = $pago->tipo_movimiento ?? 'venta';
+                                $tipoTicket = $pago->ticket?->tipo;
+
+                                $ticketTexto = $pago->ticket?->numero
+                                    ? '#' . str_pad($pago->ticket->numero, 6, '0', STR_PAD_LEFT)
+                                    : '—';
+
+                                if ($tipoMovimiento === 'dotacion') {
+                                    $movimientoTexto = 'Dotación';
+                                } elseif ($tipoMovimiento === 'gasto') {
+                                    $movimientoTexto = 'Gasto';
+                                } else {
+                                    $movimientoTexto = match ($tipoTicket) {
+                                        'encargo_express' => 'Express',
+                                        'encargo_kilo', 'por_kilo' => 'Por kilo',
+                                        default => 'Por encargo',
+                                    };
+                                }
+
+                                $lavadoTexto = match ($pago->ticket?->tipo_lavado_kilo) {
+                                    'basico' => 'Básico',
+                                    'premium' => 'Premium',
+                                    'extra_lavado' => 'Extra lavado',
+                                    default => null,
+                                };
+                            @endphp
+
                             <tr>
                                 <td>{{ $pago->id }}</td>
 
                                 <td>
-                                    #{{ str_pad($pago->ticket?->numero, 6, '0', STR_PAD_LEFT) }}
+                                    {{ $ticketTexto }}
                                 </td>
 
                                 <td>
-                                    @php
-                                        $tipo = $pago->ticket?->tipo;
+                                    <strong>{{ $movimientoTexto }}</strong>
 
-                                        $modoTexto = match ($tipo) {
-                                            'encargo_express' => 'Express',
-                                            'encargo_kilo' => 'Por kilo',
-                                            default => 'Por encargo',
-                                        };
-
-                                        $lavadoTexto = match ($pago->ticket?->tipo_lavado_kilo) {
-                                            'basico' => 'Básico',
-                                            'premium' => 'Premium',
-                                            'extra_lavado' => 'Extra lavado',
-                                            default => null,
-                                        };
-                                    @endphp
-
-                                    <strong>{{ $modoTexto }}</strong>
-
-                                    @if ($tipo === 'encargo_kilo')
-                                        <div style="font-size:12px; color:#6b7280;">
-                                            {{ $lavadoTexto }} · {{ number_format((float) $pago->ticket?->kilos, 2) }}
-                                            kg
+                                    @if ($tipoMovimiento === 'dotacion' || $tipoMovimiento === 'gasto')
+                                        <div class="corte-subtext">
+                                            {{ $pago->descripcion ?: $pago->referencia ?: '-' }}
+                                        </div>
+                                    @elseif (in_array($tipoTicket, ['encargo_kilo', 'por_kilo']))
+                                        <div class="corte-subtext">
+                                            {{ $lavadoTexto }} · {{ number_format((float) $pago->ticket?->kilos, 2) }} kg
                                         </div>
                                     @endif
                                 </td>
 
-                                <td>{{ ucfirst($pago->metodo_pago) }}</td>
+                                <td>{{ ucfirst($pago->metodo_pago ?? '-') }}</td>
 
                                 <td style="font-weight:bold;">
                                     ${{ number_format($pago->monto, 2) }}
                                 </td>
 
                                 <td>
-                                    {{ $pago->created_at->format('H:i') }}
+                                    {{ $pago->created_at?->format('H:i') }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="corte-empty">
-                                    No hay pagos pendientes para este turno.
+                                <td colspan="6" class="corte-empty">
+                                    No hay movimientos pendientes para este turno.
                                 </td>
                             </tr>
                         @endforelse
