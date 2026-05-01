@@ -25,4 +25,9 @@ class Prenda extends Model
     {
         return $this->hasMany(PrecioPrenda::class);
     }
+
+    public function scopePorKilo($query)
+    {
+        return $query->where('unidad', 'kg');
+    }
 }

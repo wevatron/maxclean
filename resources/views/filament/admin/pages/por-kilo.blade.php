@@ -278,6 +278,7 @@
                                 font-weight:700;
                                 text-align:center;
                                 box-sizing:border-box;
+                                font-size:10px;
                             "
                         >
                             Registrar cliente en otra pestaña
@@ -285,42 +286,6 @@
                     @endif
                 </div>
 
-                <div style="margin: 10px 0 24px 0;">
-                    <div
-                        style="
-                            display:flex;
-                            align-items:center;
-                            justify-content:space-between;
-                            gap:12px;
-                            background:#0f172a;
-                            border:1px solid #1f2937;
-                            border-radius:14px;
-                            padding:14px 16px;
-                        "
-                    >
-                        <div>
-                            <div style="font-size:16px; font-weight:700; color:white;">
-                                Lavado por kilo
-                            </div>
-                            <div style="font-size:12px; color:#9ca3af; margin-top:4px;">
-                                El cobro se calcula al final por kilos y tipo de lavado
-                            </div>
-                        </div>
-
-                        <div
-                            style="
-                                padding:6px 10px;
-                                border-radius:999px;
-                                background:#2563eb;
-                                color:white;
-                                font-size:12px;
-                                font-weight:700;
-                            "
-                        >
-                            ACTIVO
-                        </div>
-                    </div>
-                </div>
 
                 <div style="flex:1; overflow:auto;">
                     @forelse ($items as $index => $item)

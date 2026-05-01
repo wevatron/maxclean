@@ -37,13 +37,13 @@ class PrendasRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255),
 
-Select::make('categoria_prenda_id')
-    ->relationship('categoria', 'nombre')
-    ->label('Categoría')
-    ->default(fn () => $this->ownerRecord->id)
-    ->disabled()
-    ->dehydrated()
-    ->required(),
+                Select::make('categoria_prenda_id')
+                    ->relationship('categoria', 'nombre')
+                    ->label('Categoría')
+                    ->default(fn () => $this->ownerRecord->id)
+                    ->disabled()
+                    ->dehydrated()
+                    ->required(),
 
                 Select::make('tamano')
                     ->label('Tamaño')

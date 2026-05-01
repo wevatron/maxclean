@@ -79,6 +79,7 @@ class PorKilo extends Page
         }
 
         $this->prendas = Prenda::query()
+            ->porKilo()
             ->where('nombre', 'like', "%{$this->search}%")
             ->limit(9)
             ->get();
@@ -191,21 +192,16 @@ class PorKilo extends Page
         $this->calcularTotal();
     }
 
-    public function calcularTotal()
-    {
-        $kilos = (float) ($this->kilos ?: 0);
-        $this->total = round($kilos * $this->getPrecioPorKilo(), 2);
-    }
+public function calcularTotal()
+{
+    $kilosReales = (float) ($this->kilos ?: 0);
+    $kilosCobrables = max(3, $kilosReales);
+
+    $this->total = (int) round($kilosCobrables * $this->getPrecioPorKilo());
+}
 
     public function abrirModalCobro()
     {
-        if (empty($this->items)) {
-            Notification::make()
-                ->title('Ticket vacío')
-                ->danger()
-                ->send();
-            return;
-        }
 
         if (! $this->clienteSeleccionadoId) {
             Notification::make()
@@ -279,14 +275,6 @@ class PorKilo extends Page
     public function crearTicket()
     {
         if ($this->procesando) {
-            return;
-        }
-
-        if (empty($this->items)) {
-            Notification::make()
-                ->title('No hay prendas en el ticket')
-                ->danger()
-                ->send();
             return;
         }
 
