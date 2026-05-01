@@ -8,6 +8,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -30,13 +32,51 @@ class PrendasRelationManager extends RelationManager
                  Grid::make(2)
                     ->schema([
 
-                        Forms\Components\TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required()
-                            ->maxLength(100)
-                            ->columnSpanFull(),
+                        TextInput::make('nombre')
+                    ->label('Nombre')
+                    ->required()
+                    ->maxLength(255),
 
-                    ]),]);
+Select::make('categoria_prenda_id')
+    ->relationship('categoria', 'nombre')
+    ->label('Categoría')
+    ->default(fn () => $this->ownerRecord->id)
+    ->disabled()
+    ->dehydrated()
+    ->required(),
+
+                Select::make('tamano')
+                    ->label('Tamaño')
+                    ->options([
+                        'chico'   => 'Chico',
+                        'mediano' => 'Mediano',
+                        'grande'  => 'Grande',
+                        'delgado' => 'Delgado',
+                        'normal'  => 'Normal',
+                        'jumbo'   => 'Jumbo',
+                        'especial'=> 'Especial',
+                    ])
+                    ->searchable()
+                    ->nullable(),
+
+                Select::make('unidad')
+                    ->label('Unidad')
+                    ->options([
+                        'pieza'   => 'Pieza',
+                        'kg'      => 'Kilogramo (kg)',
+                        'paquete' => 'Paquete',
+                        'par'     => 'Par',
+                    ])
+                    ->default('pieza')
+                    ->required()
+                    ->searchable(),
+
+                TextInput::make('descripcion')
+                    ->label('Descripción')
+                    ->maxLength(1000),
+
+                    ])->columnSpanFull(),
+                    ]);
     }
 
     /* =========================
@@ -67,8 +107,8 @@ class PrendasRelationManager extends RelationManager
                 Action::make('ir')
                     ->label('Ver detalle')
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn($record) => url('/admin/prendas/' . $record->id))
-                    ->openUrlInNewTab(), // opcional
+                    ->url(fn($record) => url('/admin/catalogos/prendas/' . $record->id))
+                    ->openUrlInNewTab(), 
             ]);
     }
 }

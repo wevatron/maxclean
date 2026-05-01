@@ -429,14 +429,14 @@ class PorKilo extends Page
 
         $sucursal = Sucursal::find($this->sucursalId);
 
-        return 'Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
     }
 
     public static function canAccess(): bool
     {
         // Para probar rápido usamos el mismo permiso actual.
         // Luego, si quieres, lo cambiamos a View:PorKilo
-        return auth()->user()?->can('View:PorEncargo');
+        return auth()->user()?->can('View:PorKilo');
     }
 
     public function toggleClientePanel()

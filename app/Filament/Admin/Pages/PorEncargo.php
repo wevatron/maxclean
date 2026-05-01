@@ -451,7 +451,7 @@ class PorEncargo extends Page
 
         $sucursal = Sucursal::find($this->sucursalId);
 
-        return 'Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        return 'POR ENCARGO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
     }
 
     public static function canAccess(): bool

@@ -384,7 +384,7 @@ class Autoservicio extends Page
 
         $sucursal = Sucursal::find($this->sucursalId);
 
-        return 'Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        return 'AUTOSERVICIO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
     }
 
     public static function canAccess(): bool
