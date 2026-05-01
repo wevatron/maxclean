@@ -233,6 +233,8 @@
                 'basico' => 'Básico',
                 'premium' => 'Premium',
                 'extra_lavado' => 'Extra lavado',
+                'expres' => 'Expres',
+                'ropa_interior' => 'Ropa interior',
                 default => 'Sin especificar',
             };
         @endphp
@@ -393,8 +395,9 @@
                             @forelse ($record->servicios as $servicio)
                                 @php
                                     $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
-                                    $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
-                                    $subtotal = (float) ($servicio->pivot->subtotal ?? ($cantidad * $precioUnitario));
+                                    $precioUnitario =
+                                        (float) ($servicio->pivot->precio_unitario ?? ($servicio->precio_base ?? 0));
+                                    $subtotal = (float) ($servicio->pivot->subtotal ?? $cantidad * $precioUnitario);
                                 @endphp
 
                                 <tr>
@@ -444,8 +447,9 @@
                     @forelse ($record->servicios as $servicio)
                         @php
                             $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
-                            $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
-                            $subtotal = (float) ($servicio->pivot->subtotal ?? ($cantidad * $precioUnitario));
+                            $precioUnitario =
+                                (float) ($servicio->pivot->precio_unitario ?? ($servicio->precio_base ?? 0));
+                            $subtotal = (float) ($servicio->pivot->subtotal ?? $cantidad * $precioUnitario);
                         @endphp
 
                         <div class="mobile-item-card">
@@ -507,15 +511,14 @@
             </div>
         @else
             <div class="ticket-card" style="margin-bottom:40px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
                     <h3 style="font-weight:700; margin:0; color:#ffffff;">
                         Prendas
                     </h3>
 
                     @if ($record->tipo === 'encargo_kilo')
-                        <button
-                            type="button"
-                            wire:click="abrirModalAgregarPrenda"
+                        <button type="button" wire:click="abrirModalAgregarPrenda"
                             style="
                                 background:#16a34a;
                                 color:#ffffff;
@@ -525,8 +528,7 @@
                                 font-size:13px;
                                 font-weight:700;
                                 cursor:pointer;
-                            "
-                        >
+                            ">
                             Agregar prendas al inventario
                         </button>
                     @endif
@@ -534,7 +536,8 @@
 
                 @if ($record->tipo === 'encargo_kilo')
                     <div class="inventory-note">
-                        Este ticket se cobró por peso. Las prendas de esta sección se registran después del lavado como inventario y no modifican el total.
+                        Este ticket se cobró por peso. Las prendas de esta sección se registran después del lavado como
+                        inventario y no modifican el total.
                     </div>
                 @endif
 
@@ -561,7 +564,8 @@
                                         ->where('sucursal_id', $record->sucursal_id)
                                         ->first();
 
-                                    $precioNormal = (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
+                                    $precioNormal =
+                                        (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
                                     $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
                                     $precioPaquete = (float) ($precioConfig?->precio_paquete ?? 0);
                                     $piezasPorPaquete = (int) ($precioConfig?->piezas_por_paquete ?? 0);
@@ -614,7 +618,9 @@
                                                 }
 
                                                 $explicacion =
-                                                    implode(' + ', $partes) . ' = $' . number_format($item->subtotal, 2);
+                                                    implode(' + ', $partes) .
+                                                    ' = $' .
+                                                    number_format($item->subtotal, 2);
                                             } else {
                                                 $explicacion =
                                                     $cantidad .
@@ -662,27 +668,21 @@
                                     @if ($record->tipo === 'encargo_kilo')
                                         <td>
                                             <div class="inventory-actions">
-                                                <button
-                                                    type="button"
+                                                <button type="button"
                                                     wire:click="incrementarItemInventario({{ $item->id }})"
-                                                    class="inventory-btn inventory-btn-plus"
-                                                >
+                                                    class="inventory-btn inventory-btn-plus">
                                                     +
                                                 </button>
 
-                                                <button
-                                                    type="button"
+                                                <button type="button"
                                                     wire:click="disminuirItemInventario({{ $item->id }})"
-                                                    class="inventory-btn inventory-btn-minus"
-                                                >
+                                                    class="inventory-btn inventory-btn-minus">
                                                     -
                                                 </button>
 
-                                                <button
-                                                    type="button"
+                                                <button type="button"
                                                     wire:click="quitarItemInventario({{ $item->id }})"
-                                                    class="inventory-btn inventory-btn-delete"
-                                                >
+                                                    class="inventory-btn inventory-btn-delete">
                                                     Quitar
                                                 </button>
                                             </div>
@@ -691,7 +691,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $record->tipo === 'encargo_kilo' ? 6 : 5 }}" style="color:#9fb3c8;">
+                                    <td colspan="{{ $record->tipo === 'encargo_kilo' ? 6 : 5 }}"
+                                        style="color:#9fb3c8;">
                                         @if ($record->tipo === 'encargo_kilo')
                                             Aún no se han inventariado prendas para este ticket por kilo.
                                         @else
@@ -707,7 +708,10 @@
                 <div class="mobile-items">
                     @forelse ($record->items as $item)
                         @php
-                            $precioConfig = $item->prenda?->precios()->where('sucursal_id', $record->sucursal_id)->first();
+                            $precioConfig = $item->prenda
+                                ?->precios()
+                                ->where('sucursal_id', $record->sucursal_id)
+                                ->first();
 
                             $precioNormal = (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
                             $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
@@ -756,8 +760,7 @@
                                             number_format($precioPaquete, 2);
 
                                         if ($sueltas > 0) {
-                                            $partes[] =
-                                                $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
+                                            $partes[] = $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
                                         }
 
                                         $explicacion =
@@ -821,27 +824,20 @@
                                     <div class="mobile-item-label">Acciones</div>
 
                                     <div class="inventory-actions" style="margin-top:8px;">
-                                        <button
-                                            type="button"
+                                        <button type="button"
                                             wire:click="incrementarItemInventario({{ $item->id }})"
-                                            class="inventory-btn inventory-btn-plus"
-                                        >
+                                            class="inventory-btn inventory-btn-plus">
                                             +
                                         </button>
 
-                                        <button
-                                            type="button"
+                                        <button type="button"
                                             wire:click="disminuirItemInventario({{ $item->id }})"
-                                            class="inventory-btn inventory-btn-minus"
-                                        >
+                                            class="inventory-btn inventory-btn-minus">
                                             -
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            wire:click="quitarItemInventario({{ $item->id }})"
-                                            class="inventory-btn inventory-btn-delete"
-                                        >
+                                        <button type="button" wire:click="quitarItemInventario({{ $item->id }})"
+                                            class="inventory-btn inventory-btn-delete">
                                             Quitar
                                         </button>
                                     </div>
@@ -1022,11 +1018,9 @@
 
                             @if (!$completado)
                                 <button
-                                    @if ($puedeMarcar)
-                                        wire:click="confirmarProceso({{ $proceso->id }})"
+                                    @if ($puedeMarcar) wire:click="confirmarProceso({{ $proceso->id }})"
                                     @else
-                                        disabled
-                                    @endif
+                                        disabled @endif
                                     style="
                                         background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
                                         color:#fff;
@@ -1063,9 +1057,9 @@
         @endif
     </div>
 
-@if ($modalAgregarPrendaAbierto)
-    <div
-        style="
+    @if ($modalAgregarPrendaAbierto)
+        <div
+            style="
             position:fixed;
             inset:0;
             background:rgba(0,0,0,.6);
@@ -1074,48 +1068,43 @@
             justify-content:center;
             z-index:9999;
             padding:20px;
-        "
-    >
-        <div
-            style="
+        ">
+            <div
+                style="
                 width:100%;
                 max-width:650px;
                 background:white;
                 border-radius:18px;
                 padding:24px;
                 box-shadow:0 25px 50px rgba(0,0,0,.35);
-            "
-        >
-            <div style="font-size:22px; font-weight:700; margin-bottom:18px; color:#111827;">
-                Agregar prendas al inventario
-            </div>
+            ">
+                <div style="font-size:22px; font-weight:700; margin-bottom:18px; color:#111827;">
+                    Agregar prendas al inventario
+                </div>
 
-            <div style="margin-bottom:14px; color:#4b5563; font-size:14px;">
-                Estas prendas se registran solo como inventario del ticket por kilo y no cambian el total cobrado.
-            </div>
+                <div style="margin-bottom:14px; color:#4b5563; font-size:14px;">
+                    Estas prendas se registran solo como inventario del ticket por kilo y no cambian el total cobrado.
+                </div>
 
-            <div style="margin-bottom:16px;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                    Buscar y seleccionar prenda
-                </label>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                        Buscar y seleccionar prenda
+                    </label>
 
-                <input
-                    type="text"
-                    wire:model.live.debounce.300ms="buscarPrenda"
-                    placeholder="Escribe nombre, descripción o tamaño..."
-                    style="
+                    <input type="text" wire:model.live.debounce.300ms="buscarPrenda"
+                        placeholder="Escribe nombre, descripción o tamaño..."
+                        style="
                         width:100%;
                         padding:12px;
                         border-radius:10px;
                         border:1px solid #d1d5db;
                         color:#111827;
-                    "
-                />
-            </div>
+                    " />
+                </div>
 
-            @if ($prendaSeleccionadaId)
-                <div
-                    style="
+                @if ($prendaSeleccionadaId)
+                    <div
+                        style="
                         margin-bottom:16px;
                         padding:12px 14px;
                         border-radius:12px;
@@ -1125,21 +1114,18 @@
                         justify-content:space-between;
                         align-items:center;
                         gap:12px;
-                    "
-                >
-                    <div>
-                        <div style="font-size:12px; color:#166534; font-weight:700;">
-                            PRENDA SELECCIONADA
+                    ">
+                        <div>
+                            <div style="font-size:12px; color:#166534; font-weight:700;">
+                                PRENDA SELECCIONADA
+                            </div>
+                            <div style="font-size:15px; color:#111827; font-weight:600;">
+                                {{ $prendaSeleccionadaTexto }}
+                            </div>
                         </div>
-                        <div style="font-size:15px; color:#111827; font-weight:600;">
-                            {{ $prendaSeleccionadaTexto }}
-                        </div>
-                    </div>
 
-                    <button
-                        type="button"
-                        wire:click="limpiarSeleccionPrenda"
-                        style="
+                        <button type="button" wire:click="limpiarSeleccionPrenda"
+                            style="
                             border:none;
                             background:#ef4444;
                             color:white;
@@ -1147,29 +1133,25 @@
                             border-radius:8px;
                             cursor:pointer;
                             font-weight:700;
-                        "
-                    >
-                        Cambiar
-                    </button>
-                </div>
-            @endif
+                        ">
+                            Cambiar
+                        </button>
+                    </div>
+                @endif
 
-            @if (! $prendaSeleccionadaId && filled($buscarPrenda))
-                <div
-                    style="
+                @if (!$prendaSeleccionadaId && filled($buscarPrenda))
+                    <div
+                        style="
                         margin-bottom:16px;
                         border:1px solid #d1d5db;
                         border-radius:12px;
                         max-height:240px;
                         overflow-y:auto;
                         background:white;
-                    "
-                >
-                    @forelse ($this->prendasDisponibles as $prenda)
-                        <button
-                            type="button"
-                            wire:click="seleccionarPrendaInventario({{ $prenda->id }})"
-                            style="
+                    ">
+                        @forelse ($this->prendasDisponibles as $prenda)
+                            <button type="button" wire:click="seleccionarPrendaInventario({{ $prenda->id }})"
+                                style="
                                 width:100%;
                                 text-align:left;
                                 padding:12px 14px;
@@ -1178,70 +1160,62 @@
                                 border-bottom:1px solid #e5e7eb;
                                 cursor:pointer;
                                 color:#111827;
-                            "
-                        >
-                            <div style="font-weight:700;">
-                                {{ $prenda->nombre }}
+                            ">
+                                <div style="font-weight:700;">
+                                    {{ $prenda->nombre }}
+                                </div>
+
+                                <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+                                    @if (!empty($prenda->tamano))
+                                        {{ ucfirst($prenda->tamano) }}
+                                    @endif
+
+                                    @if (!empty($prenda->descripcion))
+                                        @if (!empty($prenda->tamano))
+                                            ·
+                                        @endif
+                                        {{ $prenda->descripcion }}
+                                    @endif
+                                </div>
+                            </button>
+                        @empty
+                            <div style="padding:14px; color:#6b7280;">
+                                No se encontraron prendas con esa búsqueda.
                             </div>
+                        @endforelse
+                    </div>
+                @endif
 
-                            <div style="font-size:12px; color:#6b7280; margin-top:4px;">
-                                @if (!empty($prenda->tamano))
-                                    {{ ucfirst($prenda->tamano) }}
-                                @endif
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                        Cantidad
+                    </label>
 
-                                @if (!empty($prenda->descripcion))
-                                    @if (!empty($prenda->tamano)) · @endif
-                                    {{ $prenda->descripcion }}
-                                @endif
-                            </div>
-                        </button>
-                    @empty
-                        <div style="padding:14px; color:#6b7280;">
-                            No se encontraron prendas con esa búsqueda.
-                        </div>
-                    @endforelse
-                </div>
-            @endif
-
-            <div style="margin-bottom:20px;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                    Cantidad
-                </label>
-
-                <input
-                    type="number"
-                    min="1"
-                    wire:model="cantidadPrenda"
-                    style="
+                    <input type="number" min="1" wire:model="cantidadPrenda"
+                        style="
                         width:100%;
                         padding:12px;
                         border-radius:10px;
                         border:1px solid #d1d5db;
                         color:#111827;
-                    "
-                />
-            </div>
+                    " />
+                </div>
 
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button
-                    type="button"
-                    wire:click="cerrarModalAgregarPrenda"
-                    style="
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" wire:click="cerrarModalAgregarPrenda"
+                        style="
                         padding:12px 16px;
                         border:none;
                         border-radius:10px;
                         background:#6b7280;
                         color:white;
                         cursor:pointer;
-                    "
-                >
-                    Cancelar
-                </button>
+                    ">
+                        Cancelar
+                    </button>
 
-                <button
-                    type="button"
-                    wire:click="agregarPrendaInventario"
-                    style="
+                    <button type="button" wire:click="agregarPrendaInventario"
+                        style="
                         padding:12px 16px;
                         border:none;
                         border-radius:10px;
@@ -1249,12 +1223,11 @@
                         color:white;
                         cursor:{{ $prendaSeleccionadaId ? 'pointer' : 'not-allowed' }};
                     "
-                    @if (! $prendaSeleccionadaId) disabled @endif
-                >
-                    Guardar prenda
-                </button>
+                        @if (!$prendaSeleccionadaId) disabled @endif>
+                        Guardar prenda
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-@endif
+    @endif
 </x-filament-panels::page>

@@ -178,6 +178,8 @@ class PorKilo extends Page
         return match ($this->tipoLavado) {
             'premium' => 25,
             'extra_lavado' => 30,
+            'expres' => 30,
+            'ropa_interior' => 30,
             default => 20,
         };
     }
