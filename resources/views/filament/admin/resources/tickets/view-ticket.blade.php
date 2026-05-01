@@ -104,6 +104,11 @@
             color: #a7f3d0;
         }
 
+        .aplica-badge-servicio {
+            background: #312e81;
+            color: #c4b5fd;
+        }
+
         .explicacion-texto {
             margin-top: 6px;
             font-size: 12px;
@@ -156,27 +161,33 @@
 
     <div class="ticket-wrap">
         @php
+            $esAutoservicio = $record->tipo === 'autoservicio';
+
             $tipoTicket = match ($record->tipo) {
                 'encargo_express' => 'ENCARGO EXPRESS',
                 'encargo_kilo' => 'POR KILO',
+                'autoservicio' => 'AUTOSERVICIO',
                 default => 'ENCARGO',
             };
 
             $tipoBg = match ($record->tipo) {
                 'encargo_express' => '#7c2d12',
                 'encargo_kilo' => '#064e3b',
+                'autoservicio' => '#312e81',
                 default => '#1e3a5f',
             };
 
             $tipoColor = match ($record->tipo) {
                 'encargo_express' => '#fdba74',
                 'encargo_kilo' => '#a7f3d0',
+                'autoservicio' => '#c4b5fd',
                 default => '#bfdbfe',
             };
 
             $tipoTexto = match ($record->tipo) {
                 'encargo_express' => 'Encargo express',
                 'encargo_kilo' => 'Por kilo',
+                'autoservicio' => 'Autoservicio / renta de máquinas',
                 default => 'Encargo',
             };
 
@@ -187,6 +198,7 @@
                 default => 'Sin especificar',
             };
         @endphp
+
         {{-- HEADER --}}
         <div class="ticket-header"
             style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; gap:20px; flex-wrap:wrap;">
@@ -215,13 +227,13 @@
 
                     <span
                         style="
-                        background:#1e293b;
-                        color:#cbd5e1;
-                        padding:8px 14px;
-                        border-radius:999px;
-                        font-weight:700;
-                        font-size:13px;
-                    ">
+                            background:#1e293b;
+                            color:#cbd5e1;
+                            padding:8px 14px;
+                            border-radius:999px;
+                            font-weight:700;
+                            font-size:13px;
+                        ">
                         {{ strtoupper($record->status->nombre ?? 'SIN ESTADO') }}
                     </span>
                 </div>
@@ -231,23 +243,23 @@
                 @if ($record->saldo > 0)
                     <span
                         style="
-                        background:#5a1f1f;
-                        color:#ffb4b4;
-                        padding:10px 20px;
-                        border-radius:999px;
-                        font-weight:700;
-                    ">
+                            background:#5a1f1f;
+                            color:#ffb4b4;
+                            padding:10px 20px;
+                            border-radius:999px;
+                            font-weight:700;
+                        ">
                         PENDIENTE
                     </span>
                 @else
                     <span
                         style="
-                        background:#1f5a36;
-                        color:#b9ffd9;
-                        padding:10px 20px;
-                        border-radius:999px;
-                        font-weight:700;
-                    ">
+                            background:#1f5a36;
+                            color:#b9ffd9;
+                            padding:10px 20px;
+                            border-radius:999px;
+                            font-weight:700;
+                        ">
                         PAGADO
                     </span>
                 @endif
@@ -256,7 +268,6 @@
 
         {{-- INFO GENERAL --}}
         <div class="ticket-grid-2">
-
             <div class="ticket-card">
                 <h3 style="font-weight:700; margin-bottom:15px; color:#ffffff;">
                     Información
@@ -282,26 +293,27 @@
                     {{ $record->status->nombre ?? 'Sin estado' }}
                 </p>
 
-                <p style="color:#e6edf5; margin:0;">
+                <p style="color:#e6edf5; margin:0 0 10px 0;">
                     <strong>Tipo:</strong>
                     {{ $tipoTexto }}
-                    @if ($record->tipo === 'encargo_kilo')
-                        <p style="color:#e6edf5; margin:10px 0 0 0;">
-                            <strong>Kilos:</strong>
-                            {{ number_format((float) $record->kilos, 2) }} kg
-                        </p>
-
-                        <p style="color:#e6edf5; margin:10px 0 0 0;">
-                            <strong>Tipo de lavado:</strong>
-                            {{ $tipoLavadoTexto }}
-                        </p>
-
-                        <p style="color:#e6edf5; margin:10px 0 0 0;">
-                            <strong>Precio por kilo:</strong>
-                            ${{ number_format((float) $record->precio_kilo, 2) }}
-                        </p>
-                    @endif
                 </p>
+
+                @if ($record->tipo === 'encargo_kilo')
+                    <p style="color:#e6edf5; margin:10px 0 0 0;">
+                        <strong>Kilos:</strong>
+                        {{ number_format((float) $record->kilos, 2) }} kg
+                    </p>
+
+                    <p style="color:#e6edf5; margin:10px 0 0 0;">
+                        <strong>Tipo de lavado:</strong>
+                        {{ $tipoLavadoTexto }}
+                    </p>
+
+                    <p style="color:#e6edf5; margin:10px 0 0 0;">
+                        <strong>Precio por kilo:</strong>
+                        ${{ number_format((float) $record->precio_kilo, 2) }}
+                    </p>
+                @endif
             </div>
 
             <div class="ticket-card">
@@ -321,92 +333,234 @@
                     <strong>Saldo:</strong> ${{ number_format($record->saldo, 2) }}
                 </p>
             </div>
-
         </div>
 
-        {{-- ITEMS --}}
-        <div class="ticket-card" style="margin-bottom:40px;">
-            <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
-                Prendas
-            </h3>
+        {{-- ITEMS / SERVICIOS --}}
+        @if ($esAutoservicio)
+            <div class="ticket-card" style="margin-bottom:40px;">
+                <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
+                    Servicios
+                </h3>
 
-            {{-- ESCRITORIO --}}
-            <div class="desktop-items ticket-table-wrap">
-                <table class="ticket-table">
-                    <thead>
-                        <tr>
-                            <th>Prenda</th>
-                            <th>Cantidad</th>
-                            <th>Precio base</th>
-                            <th>Aplicación</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
+                {{-- ESCRITORIO --}}
+                <div class="desktop-items ticket-table-wrap">
+                    <table class="ticket-table">
+                        <thead>
+                            <tr>
+                                <th>Servicio</th>
+                                <th>Cantidad</th>
+                                <th>Precio unitario</th>
+                                <th>Aplicación</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
-                        @foreach ($record->items as $item)
-                            @php
-                                $precioConfig = $item->prenda
-                                    ?->precios()
-                                    ->where('sucursal_id', $record->sucursal_id)
-                                    ->first();
+                        <tbody>
+                            @forelse ($record->servicios as $servicio)
+                                @php
+                                    $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
+                                    $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
+                                    $subtotal = (float) ($servicio->pivot->subtotal ?? ($cantidad * $precioUnitario));
+                                @endphp
 
-                                $precioNormal =
-                                    (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
-                                $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
-                                $precioPaquete = (float) ($precioConfig?->precio_paquete ?? 0);
-                                $piezasPorPaquete = (int) ($precioConfig?->piezas_por_paquete ?? 0);
-                                $cantidad = (int) $item->cantidad;
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:600;">
+                                            {{ $servicio->nombre ?? 'Sin servicio' }}
+                                        </div>
 
-                                $aplicacionTitulo = 'Precio normal';
-                                $aplicacionClase = 'aplica-badge-normal';
-                                $explicacion = 'Se cobró con precio regular por pieza.';
+                                        @if (!empty($servicio->descripcion))
+                                            <div class="explicacion-texto">
+                                                {{ $servicio->descripcion }}
+                                            </div>
+                                        @endif
+                                    </td>
 
-                                if ($record->tipo === 'encargo_kilo') {
-                                    $aplicacionTitulo = 'Por kilo';
-                                    $aplicacionClase = 'aplica-badge-kilo';
-                                    $explicacion =
-                                        'Prenda registrada solo como control.';
-                                } elseif ($record->tipo === 'encargo_express') {
-                                    $aplicacionTitulo = 'Modo express';
-                                    $aplicacionClase = 'aplica-badge-express';
+                                    <td>{{ $cantidad }}</td>
 
-                                    if ($precioExpress > 0) {
-                                        $explicacion =
-                                            $cantidad .
-                                            ' × $' .
-                                            number_format($precioExpress, 2) .
-                                            ' = $' .
-                                            number_format($item->subtotal, 2);
-                                    } else {
-                                        $explicacion =
-                                            'El ticket está en modo express, pero no se encontró precio express actual; se muestra el subtotal guardado.';
-                                    }
-                                } else {
-                                    if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
-                                        $paquetes = intdiv($cantidad, $piezasPorPaquete);
-                                        $sueltas = $cantidad % $piezasPorPaquete;
+                                    <td>${{ number_format($precioUnitario, 2) }}</td>
 
-                                        if ($paquetes > 0) {
-                                            $aplicacionTitulo = 'Combo / paquete';
-                                            $aplicacionClase = 'aplica-badge-paquete';
+                                    <td>
+                                        <span class="aplica-badge aplica-badge-servicio">
+                                            Servicio / ciclo
+                                        </span>
 
-                                            $partes = [];
+                                        <div class="explicacion-texto">
+                                            {{ $cantidad }} × ${{ number_format($precioUnitario, 2) }}
+                                            = ${{ number_format($subtotal, 2) }}
+                                        </div>
+                                    </td>
 
-                                            $partes[] =
-                                                $paquetes .
-                                                ' paquete(s) de ' .
-                                                $piezasPorPaquete .
-                                                ' por $' .
-                                                number_format($precioPaquete, 2);
+                                    <td style="font-weight:600;">
+                                        ${{ number_format($subtotal, 2) }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" style="color:#9fb3c8;">
+                                        No hay servicios registrados.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-                                            if ($sueltas > 0) {
-                                                $partes[] =
-                                                    $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
-                                            }
+                {{-- MÓVIL --}}
+                <div class="mobile-items">
+                    @forelse ($record->servicios as $servicio)
+                        @php
+                            $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
+                            $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
+                            $subtotal = (float) ($servicio->pivot->subtotal ?? ($cantidad * $precioUnitario));
+                        @endphp
 
+                        <div class="mobile-item-card">
+                            <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
+                                {{ $servicio->nombre ?? 'Sin servicio' }}
+                            </div>
+
+                            @if (!empty($servicio->descripcion))
+                                <div class="explicacion-texto" style="margin-bottom:12px;">
+                                    {{ $servicio->descripcion }}
+                                </div>
+                            @endif
+
+                            <div class="mobile-item-row">
+                                <div>
+                                    <div class="mobile-item-label">Cantidad</div>
+                                    <div>{{ $cantidad }}</div>
+                                </div>
+
+                                <div style="text-align:right;">
+                                    <div class="mobile-item-label">Precio unitario</div>
+                                    <div>${{ number_format($precioUnitario, 2) }}</div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top:10px;">
+                                <div class="mobile-item-label">Aplicación</div>
+
+                                <span class="aplica-badge aplica-badge-servicio">
+                                    Servicio / ciclo
+                                </span>
+
+                                <div class="explicacion-texto">
+                                    {{ $cantidad }} × ${{ number_format($precioUnitario, 2) }}
+                                    = ${{ number_format($subtotal, 2) }}
+                                </div>
+                            </div>
+
+                            <div style="margin-top:14px;">
+                                <div class="mobile-item-label">Subtotal</div>
+                                <div style="font-size:18px; font-weight:800;">
+                                    ${{ number_format($subtotal, 2) }}
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div
+                            style="
+                                color:#9fb3c8;
+                                background:#163252;
+                                border:1px solid #2c5d94;
+                                padding:14px;
+                                border-radius:12px;
+                            ">
+                            No hay servicios registrados.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        @else
+            <div class="ticket-card" style="margin-bottom:40px;">
+                <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
+                    Prendas
+                </h3>
+
+                {{-- ESCRITORIO --}}
+                <div class="desktop-items ticket-table-wrap">
+                    <table class="ticket-table">
+                        <thead>
+                            <tr>
+                                <th>Prenda</th>
+                                <th>Cantidad</th>
+                                <th>Precio base</th>
+                                <th>Aplicación</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach ($record->items as $item)
+                                @php
+                                    $precioConfig = $item->prenda
+                                        ?->precios()
+                                        ->where('sucursal_id', $record->sucursal_id)
+                                        ->first();
+
+                                    $precioNormal = (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
+                                    $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
+                                    $precioPaquete = (float) ($precioConfig?->precio_paquete ?? 0);
+                                    $piezasPorPaquete = (int) ($precioConfig?->piezas_por_paquete ?? 0);
+                                    $cantidad = (int) $item->cantidad;
+
+                                    $aplicacionTitulo = 'Precio normal';
+                                    $aplicacionClase = 'aplica-badge-normal';
+                                    $explicacion = 'Se cobró con precio regular por pieza.';
+
+                                    if ($record->tipo === 'encargo_kilo') {
+                                        $aplicacionTitulo = 'Por kilo';
+                                        $aplicacionClase = 'aplica-badge-kilo';
+                                        $explicacion = 'Prenda registrada solo como control.';
+                                    } elseif ($record->tipo === 'encargo_express') {
+                                        $aplicacionTitulo = 'Modo express';
+                                        $aplicacionClase = 'aplica-badge-express';
+
+                                        if ($precioExpress > 0) {
                                             $explicacion =
-                                                implode(' + ', $partes) . ' = $' . number_format($item->subtotal, 2);
+                                                $cantidad .
+                                                ' × $' .
+                                                number_format($precioExpress, 2) .
+                                                ' = $' .
+                                                number_format($item->subtotal, 2);
+                                        } else {
+                                            $explicacion =
+                                                'El ticket está en modo express, pero no se encontró precio express actual; se muestra el subtotal guardado.';
+                                        }
+                                    } else {
+                                        if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
+                                            $paquetes = intdiv($cantidad, $piezasPorPaquete);
+                                            $sueltas = $cantidad % $piezasPorPaquete;
+
+                                            if ($paquetes > 0) {
+                                                $aplicacionTitulo = 'Combo / paquete';
+                                                $aplicacionClase = 'aplica-badge-paquete';
+
+                                                $partes = [];
+
+                                                $partes[] =
+                                                    $paquetes .
+                                                    ' paquete(s) de ' .
+                                                    $piezasPorPaquete .
+                                                    ' por $' .
+                                                    number_format($precioPaquete, 2);
+
+                                                if ($sueltas > 0) {
+                                                    $partes[] =
+                                                        $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
+                                                }
+
+                                                $explicacion =
+                                                    implode(' + ', $partes) . ' = $' . number_format($item->subtotal, 2);
+                                            } else {
+                                                $explicacion =
+                                                    $cantidad .
+                                                    ' × $' .
+                                                    number_format($precioNormal, 2) .
+                                                    ' = $' .
+                                                    number_format($item->subtotal, 2);
+                                            }
                                         } else {
                                             $explicacion =
                                                 $cantidad .
@@ -415,6 +569,98 @@
                                                 ' = $' .
                                                 number_format($item->subtotal, 2);
                                         }
+                                    }
+                                @endphp
+
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:600;">
+                                            {{ $item->prenda->nombre ?? 'Sin prenda' }}
+                                        </div>
+                                    </td>
+
+                                    <td>{{ $item->cantidad }}</td>
+
+                                    <td>${{ number_format($item->precio_unitario, 2) }}</td>
+
+                                    <td>
+                                        <span class="aplica-badge {{ $aplicacionClase }}">
+                                            {{ $aplicacionTitulo }}
+                                        </span>
+
+                                        <div class="explicacion-texto">
+                                            {{ $explicacion }}
+                                        </div>
+                                    </td>
+
+                                    <td style="font-weight:600;">
+                                        ${{ number_format($item->subtotal, 2) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- MÓVIL --}}
+                <div class="mobile-items">
+                    @foreach ($record->items as $item)
+                        @php
+                            $precioConfig = $item->prenda?->precios()->where('sucursal_id', $record->sucursal_id)->first();
+
+                            $precioNormal = (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
+                            $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
+                            $precioPaquete = (float) ($precioConfig?->precio_paquete ?? 0);
+                            $piezasPorPaquete = (int) ($precioConfig?->piezas_por_paquete ?? 0);
+                            $cantidad = (int) $item->cantidad;
+
+                            $aplicacionTitulo = 'Precio normal';
+                            $aplicacionClase = 'aplica-badge-normal';
+                            $explicacion = 'Se cobró con precio regular por pieza.';
+
+                            if ($record->tipo === 'encargo_kilo') {
+                                $aplicacionTitulo = 'Por kilo';
+                                $aplicacionClase = 'aplica-badge-kilo';
+                                $explicacion = 'Prenda registrada solo como control';
+                            } elseif ($record->tipo === 'encargo_express') {
+                                $aplicacionTitulo = 'Modo express';
+                                $aplicacionClase = 'aplica-badge-express';
+
+                                if ($precioExpress > 0) {
+                                    $explicacion =
+                                        $cantidad .
+                                        ' × $' .
+                                        number_format($precioExpress, 2) .
+                                        ' = $' .
+                                        number_format($item->subtotal, 2);
+                                } else {
+                                    $explicacion =
+                                        'El ticket está en modo express, pero no se encontró precio express actual; se muestra el subtotal guardado.';
+                                }
+                            } else {
+                                if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
+                                    $paquetes = intdiv($cantidad, $piezasPorPaquete);
+                                    $sueltas = $cantidad % $piezasPorPaquete;
+
+                                    if ($paquetes > 0) {
+                                        $aplicacionTitulo = 'Combo / paquete';
+                                        $aplicacionClase = 'aplica-badge-paquete';
+
+                                        $partes = [];
+                                        $partes[] =
+                                            $paquetes .
+                                            ' paquete(s) de ' .
+                                            $piezasPorPaquete .
+                                            ' por $' .
+                                            number_format($precioPaquete, 2);
+
+                                        if ($sueltas > 0) {
+                                            $partes[] =
+                                                $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
+                                        }
+
+                                        $explicacion =
+                                            implode(' + ', $partes) . ' = $' . number_format($item->subtotal, 2);
                                     } else {
                                         $explicacion =
                                             $cantidad .
@@ -423,97 +669,6 @@
                                             ' = $' .
                                             number_format($item->subtotal, 2);
                                     }
-                                }
-                            @endphp
-
-                            <tr>
-                                <td>
-                                    <div style="font-weight:600;">
-                                        {{ $item->prenda->nombre ?? 'Sin prenda' }}
-                                    </div>
-                                </td>
-
-                                <td>{{ $item->cantidad }}</td>
-
-                                <td>${{ number_format($item->precio_unitario, 2) }}</td>
-
-                                <td>
-                                    <span class="aplica-badge {{ $aplicacionClase }}">
-                                        {{ $aplicacionTitulo }}
-                                    </span>
-
-                                    <div class="explicacion-texto">
-                                        {{ $explicacion }}
-                                    </div>
-                                </td>
-
-                                <td style="font-weight:600;">
-                                    ${{ number_format($item->subtotal, 2) }}
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- MÓVIL --}}
-            <div class="mobile-items">
-                @foreach ($record->items as $item)
-                    @php
-                        $precioConfig = $item->prenda?->precios()->where('sucursal_id', $record->sucursal_id)->first();
-
-                        $precioNormal = (float) ($precioConfig?->precio_normal ?? ($item->precio_unitario ?? 0));
-                        $precioExpress = (float) ($precioConfig?->precio_express ?? 0);
-                        $precioPaquete = (float) ($precioConfig?->precio_paquete ?? 0);
-                        $piezasPorPaquete = (int) ($precioConfig?->piezas_por_paquete ?? 0);
-                        $cantidad = (int) $item->cantidad;
-
-                        $aplicacionTitulo = 'Precio normal';
-                        $aplicacionClase = 'aplica-badge-normal';
-                        $explicacion = 'Se cobró con precio regular por pieza.';
-
-                        if ($record->tipo === 'encargo_kilo') {
-                            $aplicacionTitulo = 'Por kilo';
-                            $aplicacionClase = 'aplica-badge-kilo';
-                            $explicacion =
-                                'Prenda registrada solo como control';
-                        } elseif ($record->tipo === 'encargo_express') {
-                            $aplicacionTitulo = 'Modo express';
-                            $aplicacionClase = 'aplica-badge-express';
-
-                            if ($precioExpress > 0) {
-                                $explicacion =
-                                    $cantidad .
-                                    ' × $' .
-                                    number_format($precioExpress, 2) .
-                                    ' = $' .
-                                    number_format($item->subtotal, 2);
-                            } else {
-                                $explicacion =
-                                    'El ticket está en modo express, pero no se encontró precio express actual; se muestra el subtotal guardado.';
-                            }
-                        } else {
-                            if ($piezasPorPaquete > 0 && $precioPaquete > 0) {
-                                $paquetes = intdiv($cantidad, $piezasPorPaquete);
-                                $sueltas = $cantidad % $piezasPorPaquete;
-
-                                if ($paquetes > 0) {
-                                    $aplicacionTitulo = 'Combo / paquete';
-                                    $aplicacionClase = 'aplica-badge-paquete';
-
-                                    $partes = [];
-                                    $partes[] =
-                                        $paquetes .
-                                        ' paquete(s) de ' .
-                                        $piezasPorPaquete .
-                                        ' por $' .
-                                        number_format($precioPaquete, 2);
-
-                                    if ($sueltas > 0) {
-                                        $partes[] = $sueltas . ' suelta(s) a $' . number_format($precioNormal, 2);
-                                    }
-
-                                    $explicacion = implode(' + ', $partes) . ' = $' . number_format($item->subtotal, 2);
                                 } else {
                                     $explicacion =
                                         $cantidad .
@@ -522,55 +677,48 @@
                                         ' = $' .
                                         number_format($item->subtotal, 2);
                                 }
-                            } else {
-                                $explicacion =
-                                    $cantidad .
-                                    ' × $' .
-                                    number_format($precioNormal, 2) .
-                                    ' = $' .
-                                    number_format($item->subtotal, 2);
                             }
-                        }
-                    @endphp
+                        @endphp
 
-                    <div class="mobile-item-card">
-                        <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
-                            {{ $item->prenda->nombre ?? 'Sin prenda' }}
-                        </div>
-
-                        <div class="mobile-item-row">
-                            <div>
-                                <div class="mobile-item-label">Cantidad</div>
-                                <div>{{ $item->cantidad }}</div>
+                        <div class="mobile-item-card">
+                            <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
+                                {{ $item->prenda->nombre ?? 'Sin prenda' }}
                             </div>
 
-                            <div style="text-align:right;">
-                                <div class="mobile-item-label">Precio base</div>
-                                <div>${{ number_format($item->precio_unitario, 2) }}</div>
+                            <div class="mobile-item-row">
+                                <div>
+                                    <div class="mobile-item-label">Cantidad</div>
+                                    <div>{{ $item->cantidad }}</div>
+                                </div>
+
+                                <div style="text-align:right;">
+                                    <div class="mobile-item-label">Precio base</div>
+                                    <div>${{ number_format($item->precio_unitario, 2) }}</div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top:10px;">
+                                <div class="mobile-item-label">Aplicación</div>
+                                <span class="aplica-badge {{ $aplicacionClase }}">
+                                    {{ $aplicacionTitulo }}
+                                </span>
+
+                                <div class="explicacion-texto">
+                                    {{ $explicacion }}
+                                </div>
+                            </div>
+
+                            <div style="margin-top:14px;">
+                                <div class="mobile-item-label">Subtotal</div>
+                                <div style="font-size:18px; font-weight:800;">
+                                    ${{ number_format($item->subtotal, 2) }}
+                                </div>
                             </div>
                         </div>
-
-                        <div style="margin-top:10px;">
-                            <div class="mobile-item-label">Aplicación</div>
-                            <span class="aplica-badge {{ $aplicacionClase }}">
-                                {{ $aplicacionTitulo }}
-                            </span>
-
-                            <div class="explicacion-texto">
-                                {{ $explicacion }}
-                            </div>
-                        </div>
-
-                        <div style="margin-top:14px;">
-                            <div class="mobile-item-label">Subtotal</div>
-                            <div style="font-size:18px; font-weight:800;">
-                                ${{ number_format($item->subtotal, 2) }}
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
-        </div>
+        @endif
 
         {{-- PAGOS --}}
         <div class="ticket-card">
@@ -588,18 +736,16 @@
 
                 <div class="pago-row"
                     style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                margin-bottom:12px;
-                padding:14px 16px;
-                border-radius:14px;
-                background:{{ $colorFondo }};
-                border:1px solid {{ $colorBorde }};
-                transition:all .2s ease;
-            ">
-
-                    {{-- Información izquierda --}}
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        margin-bottom:12px;
+                        padding:14px 16px;
+                        border-radius:14px;
+                        background:{{ $colorFondo }};
+                        border:1px solid {{ $colorBorde }};
+                        transition:all .2s ease;
+                    ">
                     <div>
                         <div style="font-weight:700; font-size:15px; color:#ffffff;">
                             {{ ucfirst($pago->metodo_pago) }}
@@ -616,15 +762,13 @@
                         @endif
                     </div>
 
-                    {{-- Monto y acciones --}}
                     <div style="display:flex; align-items:center; gap:18px;">
-
                         <span
                             style="
-                        font-weight:800;
-                        font-size:16px;
-                        color: {{ $colorMonto }};
-                    ">
+                                font-weight:800;
+                                font-size:16px;
+                                color: {{ $colorMonto }};
+                            ">
                             {{ $pago->monto < 0 ? '-' : '+' }}
                             ${{ number_format(abs($pago->monto), 2) }}
                         </span>
@@ -649,18 +793,17 @@
                         @else
                             <span
                                 style="
-                            background:#3f3f46;
-                            border:1px solid #52525b;
-                            color:#d4d4d8;
-                            padding:5px 10px;
-                            border-radius:6px;
-                            font-size:11px;
-                            font-weight:700;
-                        ">
+                                    background:#3f3f46;
+                                    border:1px solid #52525b;
+                                    color:#d4d4d8;
+                                    padding:5px 10px;
+                                    border-radius:6px;
+                                    font-size:11px;
+                                    font-weight:700;
+                                ">
                                 CANCELADO
                             </span>
                         @endif
-
                     </div>
                 </div>
 
@@ -678,96 +821,99 @@
             @endforelse
         </div>
 
-        <div class="ticket-card" style="margin-top:40px;">
-            <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
-                Procesos
-            </h3>
+        {{-- PROCESOS --}}
+        @if (!$esAutoservicio)
+            <div class="ticket-card" style="margin-top:40px;">
+                <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
+                    Procesos
+                </h3>
 
-            @php
-                $ordenProcesos = \App\Models\Ticket::ordenProcesos();
-
-                $procesosOrdenados = $record->procesos->sortBy(function ($p) use ($ordenProcesos) {
-                    return array_search($p->proceso, $ordenProcesos);
-                });
-            @endphp
-
-            @forelse($procesosOrdenados as $proceso)
                 @php
-                    $completado = $proceso->completado;
+                    $ordenProcesos = \App\Models\Ticket::ordenProcesos();
+
+                    $procesosOrdenados = $record->procesos->sortBy(function ($p) use ($ordenProcesos) {
+                        return array_search($p->proceso, $ordenProcesos);
+                    });
                 @endphp
 
-                <div
-                    style="
-                        display:flex;
-                        justify-content:space-between;
-                        align-items:center;
-                        padding:12px 16px;
-                        margin-bottom:10px;
-                        border-radius:12px;
-                        background: {{ $completado ? '#143a2b' : '#1e293b' }};
-                        border: 1px solid {{ $completado ? '#16a34a' : '#334155' }};
-                    ">
+                @forelse($procesosOrdenados as $proceso)
+                    @php
+                        $completado = $proceso->completado;
+                    @endphp
 
-                    <div style="font-weight:600; color:#ffffff;">
-                        {{ ucfirst($proceso->proceso) }}
+                    <div
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:12px 16px;
+                            margin-bottom:10px;
+                            border-radius:12px;
+                            background: {{ $completado ? '#143a2b' : '#1e293b' }};
+                            border: 1px solid {{ $completado ? '#16a34a' : '#334155' }};
+                        ">
+
+                        <div style="font-weight:600; color:#ffffff;">
+                            {{ ucfirst($proceso->proceso) }}
+                        </div>
+
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            @php
+                                $ordenProcesos = \App\Models\Ticket::ordenProcesos();
+                                $indexActual = array_search($proceso->proceso, $ordenProcesos);
+
+                                $puedeMarcar = true;
+
+                                if ($indexActual > 0) {
+                                    $procesoAnterior = $ordenProcesos[$indexActual - 1];
+
+                                    $puedeMarcar = $record->procesos
+                                        ->where('proceso', $procesoAnterior)
+                                        ->where('completado', true)
+                                        ->isNotEmpty();
+                                }
+                            @endphp
+
+                            @if (!$completado)
+                                <button
+                                    @if ($puedeMarcar)
+                                        wire:click="confirmarProceso({{ $proceso->id }})"
+                                    @else
+                                        disabled
+                                    @endif
+                                    style="
+                                        background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
+                                        color:#fff;
+                                        padding:6px 12px;
+                                        border-radius:8px;
+                                        font-size:12px;
+                                        border:none;
+                                        cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
+                                    ">
+                                    Marcar completado
+                                </button>
+                            @else
+                                <span
+                                    style="
+                                        background:#065f46;
+                                        color:#bbf7d0;
+                                        padding:6px 10px;
+                                        border-radius:8px;
+                                        font-size:12px;
+                                        font-weight:700;
+                                    ">
+                                    COMPLETADO
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
-                    <div style="display:flex; gap:12px; align-items:center;">
-                        @php
-                            $ordenProcesos = \App\Models\Ticket::ordenProcesos();
-                            $indexActual = array_search($proceso->proceso, $ordenProcesos);
-
-                            $puedeMarcar = true;
-
-                            if ($indexActual > 0) {
-                                $procesoAnterior = $ordenProcesos[$indexActual - 1];
-
-                                $puedeMarcar = $record->procesos
-                                    ->where('proceso', $procesoAnterior)
-                                    ->where('completado', true)
-                                    ->isNotEmpty();
-                            }
-                        @endphp
-
-                        @if (!$completado)
-                            <button
-                                @if ($puedeMarcar) wire:click="confirmarProceso({{ $proceso->id }})"
-                                @else
-                                    disabled @endif
-                                style="
-                                    background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
-                                    color:#fff;
-                                    padding:6px 12px;
-                                    border-radius:8px;
-                                    font-size:12px;
-                                    border:none;
-                                    cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
-                                ">
-                                Marcar completado
-                            </button>
-                        @else
-                            <span
-                                style="
-                        background:#065f46;
-                        color:#bbf7d0;
-                        padding:6px 10px;
-                        border-radius:8px;
-                        font-size:12px;
-                        font-weight:700;
-                    ">
-                                COMPLETADO
-                            </span>
-                        @endif
-
+                @empty
+                    <div style="color:#9fb3c8;">
+                        No hay procesos registrados.
                     </div>
-                </div>
-
-            @empty
-                <div style="color:#9fb3c8;">
-                    No hay procesos registrados.
-                </div>
-            @endforelse
-        </div>
-
+                @endforelse
+            </div>
+        @endif
     </div>
 </x-filament-panels::page>

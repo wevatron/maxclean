@@ -15,7 +15,12 @@ class Servicio extends Model
 
     public function tickets()
     {
-        return $this->belongsToMany(Ticket::class, 'ticket_servicios');
+        return $this->belongsToMany(Ticket::class, 'ticket_servicios')
+            ->withPivot([
+                'cantidad',
+                'precio_unitario',
+                'subtotal',
+            ])
+            ->withTimestamps();
     }
 }
-

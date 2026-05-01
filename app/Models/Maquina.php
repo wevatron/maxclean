@@ -32,9 +32,4 @@ class Maquina extends Model
         return $this->belongsTo(TipoMaquina::class, 'tipo_maquina_id');
     }
 
-    // Futuro: una máquina puede tener muchas órdenes asociadas
-   /*  public function orders()
-    {
-        return $this->hasMany(Order::class);
-    } */
 }

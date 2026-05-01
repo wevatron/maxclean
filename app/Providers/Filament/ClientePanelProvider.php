@@ -41,7 +41,7 @@ class ClientePanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Cliente/Resources'), for: 'App\Filament\Cliente\Resources')
             ->discoverPages(in: app_path('Filament/Cliente/Pages'), for: 'App\Filament\Cliente\Pages')
              ->pages([
-                Dashboard::class,
+                /* Dashboard::class, */
             ])
             ->discoverWidgets(in: app_path('Filament/Cliente/Widgets'), for: 'App\Filament\Cliente\Widgets')
             ->widgets([

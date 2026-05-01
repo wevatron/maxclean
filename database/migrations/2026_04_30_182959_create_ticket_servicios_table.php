@@ -1,0 +1,40 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('ticket_servicios', function (Blueprint $table) {
+
+            $table->unsignedInteger('cantidad')
+                ->default(1)
+                ->after('servicio_id');
+
+            $table->decimal('precio_unitario', 10, 2)
+                ->default(0)
+                ->after('cantidad');
+
+            $table->decimal('subtotal', 10, 2)
+                ->default(0)
+                ->after('precio_unitario');
+
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('ticket_servicios', function (Blueprint $table) {
+
+            $table->dropColumn([
+                'cantidad',
+                'precio_unitario',
+                'subtotal',
+            ]);
+
+        });
+    }
+};

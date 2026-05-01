@@ -17,8 +17,8 @@ class TipoMaquina extends Model
     ];
 
     // Relación: un tipo puede tener muchas máquinas
-  /*   public function machines()
+    public function maquinas()
     {
-        return $this->hasMany(Machine::class);
-    } */
+        return $this->hasMany(Maquina::class);
+    }
 }

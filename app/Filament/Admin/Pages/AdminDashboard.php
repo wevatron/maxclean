@@ -48,4 +48,13 @@ class AdminDashboard extends Page
     {
         return auth()->user()?->hasRole('super_admin');
     }
+
+    public function getHeading(): string
+    {
+        return '';
+    }
+    public function getSubheading(): ?string
+{
+    return null;
+}
 }
