@@ -19,7 +19,7 @@ class AccesosRapidosVentas extends Widget
     {
         return [
             [
-                'titulo' => 'Por encargo',
+                'titulo' => 'Por pieza',
                 'descripcion' => 'Registrar prendas individuales.',
                 'icono' => '🧺',
                 'url' => \App\Filament\Admin\Pages\PorEncargo::getUrl(),

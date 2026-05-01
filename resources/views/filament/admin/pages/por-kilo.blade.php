@@ -457,9 +457,11 @@
                             color:#111827;
                         "
                     >
-                        <option value="basico">Básico ($20/kg)</option>
-                        <option value="premium">Premium ($25/kg)</option>
-                        <option value="extra_lavado">Extra lavado ($30/kg)</option>
+                        <option value="basico">Básico ($22/kg)</option>
+                        <option value="premium">Premium ($28/kg)</option>
+                        <option value="extra_lavado">Extra lavado ($32/kg)</option>
+                        <option value="expres">Expres ($30/kg)</option>
+                        <option value="ropa_interior">Ropa interior ($25/kg)</option>
                     </select>
                 </div>
 

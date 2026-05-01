@@ -18,7 +18,7 @@ class PorEncargo extends Page
 {
     public $modoExpress = false;
     protected string $view = 'filament.admin.pages.por-encargo';
-    protected static ?string $navigationLabel = 'Por encargo';
+    protected static ?string $navigationLabel = 'Por pieza';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
     public $clientePanelAbierto = true;
 
