@@ -176,11 +176,11 @@ class PorKilo extends Page
     public function getPrecioPorKilo(): float
     {
         return match ($this->tipoLavado) {
-            'premium' => 25,
-            'extra_lavado' => 30,
+            'premium' => 28,
+            'extra_lavado' => 32,
             'expres' => 30,
-            'ropa_interior' => 30,
-            default => 20,
+            'ropa_interior' => 25,
+            default => 22,
         };
     }
 
