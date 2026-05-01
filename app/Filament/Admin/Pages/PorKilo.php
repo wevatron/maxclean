@@ -192,13 +192,13 @@ class PorKilo extends Page
         $this->calcularTotal();
     }
 
-public function calcularTotal()
-{
-    $kilosReales = (float) ($this->kilos ?: 0);
-    $kilosCobrables = max(3, $kilosReales);
+    public function calcularTotal()
+    {
+        $kilosReales = (float) ($this->kilos ?: 0);
+        $kilosCobrables = max(3, $kilosReales);
 
-    $this->total = (int) round($kilosCobrables * $this->getPrecioPorKilo());
-}
+        $this->total = (int) round($kilosCobrables * $this->getPrecioPorKilo());
+    }
 
     public function abrirModalCobro()
     {

@@ -30,4 +30,8 @@ class Prenda extends Model
     {
         return $query->where('unidad', 'kg');
     }
+    public function scopePorPieza($query)
+    {
+        return $query->where('unidad', 'pieza');
+    }
 }

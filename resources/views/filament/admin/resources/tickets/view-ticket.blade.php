@@ -116,6 +116,44 @@
             line-height: 1.5;
         }
 
+        .inventory-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .inventory-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .inventory-btn-plus {
+            background: #16a34a;
+        }
+
+        .inventory-btn-minus {
+            background: #d97706;
+        }
+
+        .inventory-btn-delete {
+            background: #b91c1c;
+        }
+
+        .inventory-note {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: #143a2b;
+            border: 1px solid #16a34a;
+            color: #bbf7d0;
+        }
+
         @media (max-width: 768px) {
             .ticket-wrap {
                 padding: 16px;
@@ -199,7 +237,6 @@
             };
         @endphp
 
-        {{-- HEADER --}}
         <div class="ticket-header"
             style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; gap:20px; flex-wrap:wrap;">
 
@@ -266,7 +303,6 @@
             </div>
         </div>
 
-        {{-- INFO GENERAL --}}
         <div class="ticket-grid-2">
             <div class="ticket-card">
                 <h3 style="font-weight:700; margin-bottom:15px; color:#ffffff;">
@@ -335,14 +371,12 @@
             </div>
         </div>
 
-        {{-- ITEMS / SERVICIOS --}}
         @if ($esAutoservicio)
             <div class="ticket-card" style="margin-bottom:40px;">
                 <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
                     Servicios
                 </h3>
 
-                {{-- ESCRITORIO --}}
                 <div class="desktop-items ticket-table-wrap">
                     <table class="ticket-table">
                         <thead>
@@ -406,7 +440,6 @@
                     </table>
                 </div>
 
-                {{-- MÓVIL --}}
                 <div class="mobile-items">
                     @forelse ($record->servicios as $servicio)
                         @php
@@ -474,11 +507,37 @@
             </div>
         @else
             <div class="ticket-card" style="margin-bottom:40px;">
-                <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
-                    Prendas
-                </h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+                    <h3 style="font-weight:700; margin:0; color:#ffffff;">
+                        Prendas
+                    </h3>
 
-                {{-- ESCRITORIO --}}
+                    @if ($record->tipo === 'encargo_kilo')
+                        <button
+                            type="button"
+                            wire:click="abrirModalAgregarPrenda"
+                            style="
+                                background:#16a34a;
+                                color:#ffffff;
+                                border:none;
+                                padding:10px 14px;
+                                border-radius:10px;
+                                font-size:13px;
+                                font-weight:700;
+                                cursor:pointer;
+                            "
+                        >
+                            Agregar prendas al inventario
+                        </button>
+                    @endif
+                </div>
+
+                @if ($record->tipo === 'encargo_kilo')
+                    <div class="inventory-note">
+                        Este ticket se cobró por peso. Las prendas de esta sección se registran después del lavado como inventario y no modifican el total.
+                    </div>
+                @endif
+
                 <div class="desktop-items ticket-table-wrap">
                     <table class="ticket-table">
                         <thead>
@@ -488,11 +547,14 @@
                                 <th>Precio base</th>
                                 <th>Aplicación</th>
                                 <th>Subtotal</th>
+                                @if ($record->tipo === 'encargo_kilo')
+                                    <th>Acciones</th>
+                                @endif
                             </tr>
                         </thead>
 
                         <tbody>
-                            @foreach ($record->items as $item)
+                            @forelse ($record->items as $item)
                                 @php
                                     $precioConfig = $item->prenda
                                         ?->precios()
@@ -596,15 +658,54 @@
                                     <td style="font-weight:600;">
                                         ${{ number_format($item->subtotal, 2) }}
                                     </td>
+
+                                    @if ($record->tipo === 'encargo_kilo')
+                                        <td>
+                                            <div class="inventory-actions">
+                                                <button
+                                                    type="button"
+                                                    wire:click="incrementarItemInventario({{ $item->id }})"
+                                                    class="inventory-btn inventory-btn-plus"
+                                                >
+                                                    +
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    wire:click="disminuirItemInventario({{ $item->id }})"
+                                                    class="inventory-btn inventory-btn-minus"
+                                                >
+                                                    -
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    wire:click="quitarItemInventario({{ $item->id }})"
+                                                    class="inventory-btn inventory-btn-delete"
+                                                >
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    @endif
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="{{ $record->tipo === 'encargo_kilo' ? 6 : 5 }}" style="color:#9fb3c8;">
+                                        @if ($record->tipo === 'encargo_kilo')
+                                            Aún no se han inventariado prendas para este ticket por kilo.
+                                        @else
+                                            No hay prendas registradas.
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                {{-- MÓVIL --}}
                 <div class="mobile-items">
-                    @foreach ($record->items as $item)
+                    @forelse ($record->items as $item)
                         @php
                             $precioConfig = $item->prenda?->precios()->where('sucursal_id', $record->sucursal_id)->first();
 
@@ -714,13 +815,59 @@
                                     ${{ number_format($item->subtotal, 2) }}
                                 </div>
                             </div>
+
+                            @if ($record->tipo === 'encargo_kilo')
+                                <div style="margin-top:14px;">
+                                    <div class="mobile-item-label">Acciones</div>
+
+                                    <div class="inventory-actions" style="margin-top:8px;">
+                                        <button
+                                            type="button"
+                                            wire:click="incrementarItemInventario({{ $item->id }})"
+                                            class="inventory-btn inventory-btn-plus"
+                                        >
+                                            +
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            wire:click="disminuirItemInventario({{ $item->id }})"
+                                            class="inventory-btn inventory-btn-minus"
+                                        >
+                                            -
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            wire:click="quitarItemInventario({{ $item->id }})"
+                                            class="inventory-btn inventory-btn-delete"
+                                        >
+                                            Quitar
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
-                    @endforeach
+                    @empty
+                        <div
+                            style="
+                                color:#9fb3c8;
+                                background:#163252;
+                                border:1px solid #2c5d94;
+                                padding:14px;
+                                border-radius:12px;
+                            ">
+                            @if ($record->tipo === 'encargo_kilo')
+                                Aún no se han inventariado prendas para este ticket por kilo.
+                            @else
+                                No hay prendas registradas.
+                            @endif
+                        </div>
+                    @endforelse
                 </div>
             </div>
         @endif
 
-        {{-- PAGOS --}}
         <div class="ticket-card">
             <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
                 Pagos
@@ -821,7 +968,6 @@
             @endforelse
         </div>
 
-        {{-- PROCESOS --}}
         @if (!$esAutoservicio)
             <div class="ticket-card" style="margin-top:40px;">
                 <h3 style="font-weight:700; margin-bottom:20px; color:#ffffff;">
@@ -916,4 +1062,199 @@
             </div>
         @endif
     </div>
+
+@if ($modalAgregarPrendaAbierto)
+    <div
+        style="
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.6);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:9999;
+            padding:20px;
+        "
+    >
+        <div
+            style="
+                width:100%;
+                max-width:650px;
+                background:white;
+                border-radius:18px;
+                padding:24px;
+                box-shadow:0 25px 50px rgba(0,0,0,.35);
+            "
+        >
+            <div style="font-size:22px; font-weight:700; margin-bottom:18px; color:#111827;">
+                Agregar prendas al inventario
+            </div>
+
+            <div style="margin-bottom:14px; color:#4b5563; font-size:14px;">
+                Estas prendas se registran solo como inventario del ticket por kilo y no cambian el total cobrado.
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                    Buscar y seleccionar prenda
+                </label>
+
+                <input
+                    type="text"
+                    wire:model.live.debounce.300ms="buscarPrenda"
+                    placeholder="Escribe nombre, descripción o tamaño..."
+                    style="
+                        width:100%;
+                        padding:12px;
+                        border-radius:10px;
+                        border:1px solid #d1d5db;
+                        color:#111827;
+                    "
+                />
+            </div>
+
+            @if ($prendaSeleccionadaId)
+                <div
+                    style="
+                        margin-bottom:16px;
+                        padding:12px 14px;
+                        border-radius:12px;
+                        background:#ecfdf5;
+                        border:1px solid #86efac;
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:12px;
+                    "
+                >
+                    <div>
+                        <div style="font-size:12px; color:#166534; font-weight:700;">
+                            PRENDA SELECCIONADA
+                        </div>
+                        <div style="font-size:15px; color:#111827; font-weight:600;">
+                            {{ $prendaSeleccionadaTexto }}
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        wire:click="limpiarSeleccionPrenda"
+                        style="
+                            border:none;
+                            background:#ef4444;
+                            color:white;
+                            padding:8px 12px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-weight:700;
+                        "
+                    >
+                        Cambiar
+                    </button>
+                </div>
+            @endif
+
+            @if (! $prendaSeleccionadaId && filled($buscarPrenda))
+                <div
+                    style="
+                        margin-bottom:16px;
+                        border:1px solid #d1d5db;
+                        border-radius:12px;
+                        max-height:240px;
+                        overflow-y:auto;
+                        background:white;
+                    "
+                >
+                    @forelse ($this->prendasDisponibles as $prenda)
+                        <button
+                            type="button"
+                            wire:click="seleccionarPrendaInventario({{ $prenda->id }})"
+                            style="
+                                width:100%;
+                                text-align:left;
+                                padding:12px 14px;
+                                border:none;
+                                background:white;
+                                border-bottom:1px solid #e5e7eb;
+                                cursor:pointer;
+                                color:#111827;
+                            "
+                        >
+                            <div style="font-weight:700;">
+                                {{ $prenda->nombre }}
+                            </div>
+
+                            <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+                                @if (!empty($prenda->tamano))
+                                    {{ ucfirst($prenda->tamano) }}
+                                @endif
+
+                                @if (!empty($prenda->descripcion))
+                                    @if (!empty($prenda->tamano)) · @endif
+                                    {{ $prenda->descripcion }}
+                                @endif
+                            </div>
+                        </button>
+                    @empty
+                        <div style="padding:14px; color:#6b7280;">
+                            No se encontraron prendas con esa búsqueda.
+                        </div>
+                    @endforelse
+                </div>
+            @endif
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                    Cantidad
+                </label>
+
+                <input
+                    type="number"
+                    min="1"
+                    wire:model="cantidadPrenda"
+                    style="
+                        width:100%;
+                        padding:12px;
+                        border-radius:10px;
+                        border:1px solid #d1d5db;
+                        color:#111827;
+                    "
+                />
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button
+                    type="button"
+                    wire:click="cerrarModalAgregarPrenda"
+                    style="
+                        padding:12px 16px;
+                        border:none;
+                        border-radius:10px;
+                        background:#6b7280;
+                        color:white;
+                        cursor:pointer;
+                    "
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    wire:click="agregarPrendaInventario"
+                    style="
+                        padding:12px 16px;
+                        border:none;
+                        border-radius:10px;
+                        background:{{ $prendaSeleccionadaId ? '#16a34a' : '#9ca3af' }};
+                        color:white;
+                        cursor:{{ $prendaSeleccionadaId ? 'pointer' : 'not-allowed' }};
+                    "
+                    @if (! $prendaSeleccionadaId) disabled @endif
+                >
+                    Guardar prenda
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
 </x-filament-panels::page>

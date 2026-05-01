@@ -77,7 +77,7 @@ class PorEncargo extends Page
 
         $sucursalId = $this->sucursalId;
 
-        $this->prendas = Prenda::with([
+        $this->prendas = Prenda::porPieza()->with([
             'precios' => function ($query) use ($sucursalId) {
                 $query->where('sucursal_id', $sucursalId);
             }
