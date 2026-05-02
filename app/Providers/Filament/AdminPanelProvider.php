@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => '#00AEEF',   // azul estilo Max&Clean
                 'gray'    => '#64748b',
             ])
+            ->sidebarFullyCollapsibleOnDesktop()
             ->brandLogo(asset('img/logo.png'))
             ->brandLogoHeight('2.5rem')
             ->brandName(' ') // vacío si no quieres texto
