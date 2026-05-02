@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QrLoginController;
 use App\Models\CorteCaja;
 use App\Http\Controllers\CorteCajaPdfController;
+use App\Http\Controllers\TicketPrintController;
 
 Route::get('/', function () {
     return redirect('/admin/login');
@@ -20,3 +21,7 @@ Route::get('/admin/cortes/{corte}/pdf', function (CorteCaja $corte) {
 
 Route::get('/cortes-caja/{corte}/pdf', [CorteCajaPdfController::class, 'show'])
     ->name('cortes-caja.pdf');
+
+
+Route::middleware(['auth'])->get('/tickets/{ticket}/print', [TicketPrintController::class, 'show'])
+    ->name('tickets.print');

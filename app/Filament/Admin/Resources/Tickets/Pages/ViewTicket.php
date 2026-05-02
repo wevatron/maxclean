@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Tickets\Pages;
 
 use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\Prenda;
+use App\Models\Servicio;
 use App\Models\TicketStatus;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -29,9 +30,25 @@ class ViewTicket extends ViewRecord
     public ?string $prendaSeleccionadaTexto = null;
     public int $cantidadPrenda = 1;
 
+    public bool $modalAgregarServicioAbierto = false;
+    public string $buscarServicio = '';
+    public ?int $servicioSeleccionadoId = null;
+    public ?string $servicioSeleccionadoTexto = null;
+    public int $cantidadServicio = 1;
+
     protected function getHeaderActions(): array
     {
         return [
+
+            Action::make('imprimir')
+                ->label('Imprimir ticket')
+                ->icon('heroicon-m-printer')
+                ->color('gray')
+                ->url(fn($record) => route('tickets.print', [
+                    'ticket' => $record->id,
+                    'autoprint' => 1,
+                ]))
+                ->openUrlInNewTab(),
             Action::make('registrarPago')
                 ->label('Registrar pago')
                 ->icon('heroicon-m-banknotes')
@@ -110,6 +127,8 @@ class ViewTicket extends ViewRecord
                         }
                     });
 
+                    $this->refrescarRecord();
+
                     Notification::make()
                         ->title('Pago registrado correctamente')
                         ->success()
@@ -142,6 +161,28 @@ class ViewTicket extends ViewRecord
             ->get();
     }
 
+    public function getServiciosDisponiblesProperty()
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return collect();
+        }
+
+        $texto = trim($this->buscarServicio);
+
+        if ($texto === '') {
+            return collect();
+        }
+
+        return Servicio::query()
+            ->where(function ($query) use ($texto) {
+                $query->where('nombre', 'like', "%{$texto}%")
+                    ->orWhere('descripcion', 'like', "%{$texto}%");
+            })
+            ->orderBy('nombre')
+            ->limit(12)
+            ->get();
+    }
+
     public function updatedBuscarPrenda($value): void
     {
         $value = trim((string) $value);
@@ -152,6 +193,19 @@ class ViewTicket extends ViewRecord
         ) {
             $this->prendaSeleccionadaId = null;
             $this->prendaSeleccionadaTexto = null;
+        }
+    }
+
+    public function updatedBuscarServicio($value): void
+    {
+        $value = trim((string) $value);
+
+        if (
+            $this->servicioSeleccionadoId &&
+            $value !== trim((string) $this->servicioSeleccionadaTexto)
+        ) {
+            $this->servicioSeleccionadoId = null;
+            $this->servicioSeleccionadoTexto = null;
         }
     }
 
@@ -180,6 +234,33 @@ class ViewTicket extends ViewRecord
         $this->cantidadPrenda = 1;
         $this->buscarPrenda = '';
     }
+
+    public function abrirModalAgregarServicio(): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            Notification::make()
+                ->title('Solo disponible en tickets de autoservicio')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $this->servicioSeleccionadoId = null;
+        $this->servicioSeleccionadoTexto = null;
+        $this->cantidadServicio = 1;
+        $this->buscarServicio = '';
+        $this->modalAgregarServicioAbierto = true;
+    }
+
+    public function cerrarModalAgregarServicio(): void
+    {
+        $this->modalAgregarServicioAbierto = false;
+        $this->servicioSeleccionadoId = null;
+        $this->servicioSeleccionadoTexto = null;
+        $this->cantidadServicio = 1;
+        $this->buscarServicio = '';
+    }
+
     public function seleccionarPrendaInventario(int $prendaId): void
     {
         $prenda = Prenda::query()
@@ -206,11 +287,41 @@ class ViewTicket extends ViewRecord
         $this->buscarPrenda = $texto;
     }
 
+    public function seleccionarServicioTicket(int $servicioId): void
+    {
+        $servicio = Servicio::query()->find($servicioId);
+
+        if (! $servicio) {
+            Notification::make()
+                ->title('El servicio no es válido')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $texto = $servicio->nombre;
+
+        if (! empty($servicio->descripcion)) {
+            $texto .= ' - ' . $servicio->descripcion;
+        }
+
+        $this->servicioSeleccionadoId = $servicio->id;
+        $this->servicioSeleccionadoTexto = $texto;
+        $this->buscarServicio = $texto;
+    }
+
     public function limpiarSeleccionPrenda(): void
     {
         $this->prendaSeleccionadaId = null;
         $this->prendaSeleccionadaTexto = null;
         $this->buscarPrenda = '';
+    }
+
+    public function limpiarSeleccionServicio(): void
+    {
+        $this->servicioSeleccionadoId = null;
+        $this->servicioSeleccionadoTexto = null;
+        $this->buscarServicio = '';
     }
 
     public function agregarPrendaInventario(): void
@@ -281,6 +392,79 @@ class ViewTicket extends ViewRecord
         $this->cerrarModalAgregarPrenda();
     }
 
+    public function agregarServicioTicket(): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            Notification::make()
+                ->title('Solo disponible en tickets de autoservicio')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if (! $this->servicioSeleccionadoId) {
+            Notification::make()
+                ->title('Debes seleccionar un servicio')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if ((int) $this->cantidadServicio < 1) {
+            Notification::make()
+                ->title('La cantidad debe ser al menos 1')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $servicio = Servicio::query()->find($this->servicioSeleccionadoId);
+
+        if (! $servicio) {
+            Notification::make()
+                ->title('El servicio no es válido')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        DB::transaction(function () use ($servicio) {
+            $cantidadNueva = (int) $this->cantidadServicio;
+            $precioUnitario = (float) ($servicio->precio_base ?? 0);
+
+            $servicioExistente = $this->record->servicios()
+                ->where('servicios.id', $servicio->id)
+                ->first();
+
+            if ($servicioExistente) {
+                $cantidadNueva += (int) ($servicioExistente->pivot->cantidad ?? 0);
+
+                $this->record->servicios()->updateExistingPivot($servicio->id, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            } else {
+                $this->record->servicios()->attach($servicio->id, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            }
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+
+        Notification::make()
+            ->title('Servicio agregado al ticket')
+            ->success()
+            ->send();
+
+        $this->cerrarModalAgregarServicio();
+    }
 
     public function incrementarItemInventario(int $itemId): void
     {
@@ -344,6 +528,150 @@ class ViewTicket extends ViewRecord
             ->title('Prenda eliminada del inventario')
             ->success()
             ->send();
+    }
+
+    public function incrementarServicioTicket(int $servicioId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $servicio = $this->record->servicios()
+            ->where('servicios.id', $servicioId)
+            ->first();
+
+        if (! $servicio) {
+            return;
+        }
+
+        DB::transaction(function () use ($servicioId, $servicio) {
+            $cantidad = (int) ($servicio->pivot->cantidad ?? 0) + 1;
+            $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
+
+            $this->record->servicios()->updateExistingPivot($servicioId, [
+                'cantidad' => $cantidad,
+                'precio_unitario' => $precioUnitario,
+                'subtotal' => $cantidad * $precioUnitario,
+            ]);
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+    }
+
+    public function disminuirServicioTicket(int $servicioId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $servicio = $this->record->servicios()
+            ->where('servicios.id', $servicioId)
+            ->first();
+
+        if (! $servicio) {
+            return;
+        }
+
+        DB::transaction(function () use ($servicioId, $servicio) {
+            $cantidadActual = (int) ($servicio->pivot->cantidad ?? 0);
+            $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? $servicio->precio_base ?? 0);
+
+            if ($cantidadActual > 1) {
+                $cantidadNueva = $cantidadActual - 1;
+
+                $this->record->servicios()->updateExistingPivot($servicioId, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            } else {
+                $this->record->servicios()->detach($servicioId);
+            }
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+    }
+
+    public function quitarServicioTicket(int $servicioId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $servicio = $this->record->servicios()
+            ->where('servicios.id', $servicioId)
+            ->first();
+
+        if (! $servicio) {
+            return;
+        }
+
+        DB::transaction(function () use ($servicioId) {
+            $this->record->servicios()->detach($servicioId);
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+
+        Notification::make()
+            ->title('Servicio eliminado del ticket')
+            ->success()
+            ->send();
+    }
+
+    protected function recalcularTotalAutoservicio(): void
+    {
+        $totalServicios = (float) $this->record->servicios()
+            ->sum('ticket_servicios.subtotal');
+
+        $this->record->update([
+            'total' => $totalServicios,
+        ]);
+
+        $this->record->refresh();
+    }
+
+    protected function actualizarStatusAutoservicioSegunSaldo(): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $this->record->refresh();
+
+        if ($this->record->saldo <= 0) {
+            $statusPagadoId = TicketStatus::whereRaw(
+                'LOWER(nombre) = ?',
+                ['pagado']
+            )->value('id');
+
+            if ($statusPagadoId) {
+                $this->record->update([
+                    'status_id' => $statusPagadoId,
+                ]);
+            }
+
+            return;
+        }
+
+        $statusRecibidoId = TicketStatus::whereRaw(
+            'LOWER(nombre) = ?',
+            ['recibido']
+        )->value('id');
+
+        if ($statusRecibidoId) {
+            $this->record->update([
+                'status_id' => $statusRecibidoId,
+            ]);
+        }
     }
 
     protected function refrescarRecord(): void
@@ -623,6 +951,8 @@ class ViewTicket extends ViewRecord
                 }
             }
         });
+
+        $this->refrescarRecord();
 
         Notification::make()
             ->title('Pago cancelado correctamente')
