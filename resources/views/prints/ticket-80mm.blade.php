@@ -298,33 +298,31 @@
             @endforelse
         @endif
 
-        <div class="mono-box">
-            <div class="center bold" style="margin-bottom:6px;">
-                {{ $leyendaPago }}
+
+        @if ($saldoActual > 0)
+            <div class="mono-box">
+                <div class="center bold" style="margin-bottom:6px;">
+                    {{ $ultimoPago ? 'PAGO PARCIAL' : 'SIN PAGO REGISTRADO' }}
+                </div>
+
+                @if ($ultimoPago)
+                    <div class="row">
+                        <div class="left bold">Debe antes de este pago</div>
+                        <div class="right">${{ number_format($debeAntesDeEstePago, 2) }}</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="left bold">Pago recibido</div>
+                        <div class="right">${{ number_format($montoUltimoPago, 2) }}</div>
+                    </div>
+                @endif
+
+                <div class="row">
+                    <div class="left bold">Debe ahora</div>
+                    <div class="right">${{ number_format($saldoActual, 2) }}</div>
+                </div>
             </div>
-
-            @if ($ultimoPago)
-                <div class="row">
-                    <div class="left bold">Debe antes de este pago</div>
-                    <div class="right">${{ number_format($debeAntesDeEstePago, 2) }}</div>
-                </div>
-
-                <div class="row">
-                    <div class="left bold">Pago recibido</div>
-                    <div class="right">${{ number_format($montoUltimoPago, 2) }}</div>
-                </div>
-
-                <div class="row">
-                    <div class="left bold">Debe ahora</div>
-                    <div class="right">${{ number_format($saldoActual, 2) }}</div>
-                </div>
-            @else
-                <div class="row">
-                    <div class="left bold">Debe ahora</div>
-                    <div class="right">${{ number_format($saldoActual, 2) }}</div>
-                </div>
-            @endif
-        </div>
+        @endif
 
         <div class="divider"></div>
 
@@ -375,7 +373,7 @@
             <div class="small">Sin pagos registrados.</div>
         @endforelse
 
-        @if (!$esAutoservicio && $ticket->procesos->isNotEmpty())
+        {{--         @if (!$esAutoservicio && $ticket->procesos->isNotEmpty())
             <div class="divider"></div>
 
             <div class="bold mb-2">PROCESOS</div>
@@ -386,7 +384,7 @@
                     <div class="right">{{ $proceso->completado ? 'OK' : 'PEND' }}</div>
                 </div>
             @endforeach
-        @endif
+        @endif --}}
 
         <div class="divider"></div>
 
