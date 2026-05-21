@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 class Ticket extends Model
 {
     protected $fillable = [
+        'cuenta_id',
         'sucursal_id',
         'user_id',
         'cliente_id',
@@ -83,17 +84,15 @@ class Ticket extends Model
         return $this->saldo <= 0;
     }
 
-    public static function generarNumero($sucursalId)
+    public static function generarNumero(int $sucursalId): int
     {
-        $ultimo = self::where('sucursal_id', $sucursalId)
-            ->orderByDesc('numero')
-            ->first();
+        $ultimoNumero = static::query()
+            ->where('sucursal_id', $sucursalId)
+            ->whereNotNull('numero')
+            ->selectRaw('MAX(CAST(numero AS UNSIGNED)) as max_numero')
+            ->value('max_numero');
 
-        if (!$ultimo) {
-            return 1;
-        }
-
-        return $ultimo->numero + 1;
+        return max(((int) $ultimoNumero) + 1, 1);
     }
 
 
@@ -147,5 +146,17 @@ class Ticket extends Model
             ->where('proceso', $anterior)
             ->where('completado', true)
             ->exists();
+    }
+    public function cuenta()
+    {
+        return $this->belongsTo(Cuenta::class, 'cuenta_id');
+    }
+    public function saldoPendiente(): float
+    {
+        $pagado = $this->pagos()
+            ->where('cancelado', false)
+            ->sum('monto');
+
+        return max((float) $this->total - (float) $pagado, 0);
     }
 }

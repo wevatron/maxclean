@@ -14,6 +14,15 @@
             {{ $mensajeAcceso }}
         </div>
     @else
+        @php
+            $sucursal = \App\Models\Sucursal::find($this->sucursalId);
+        @endphp
+
+        <div class="por-kilo-heading">
+            <p>
+                POR PIEZA - Sucursal: {{ $sucursal?->nombre ?? 'Sin nombre' }}
+            </p>
+        </div>
         <div style="display:flex; height:80vh; width:100%; background:#2b2b2b;">
 
             <!-- IZQUIERDA -->
@@ -448,7 +457,7 @@
                         " />
                 </div>
 
-                <div style="margin-bottom:20px;">
+                <div style="margin-bottom:16px;">
                     <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
                         Método de pago
                     </label>
@@ -467,6 +476,38 @@
                     </select>
                 </div>
 
+                <div style="margin-bottom:20px;">
+                    <label
+                        style="
+                            display:flex;
+                            gap:12px;
+                            align-items:flex-start;
+                            padding:14px;
+                            border-radius:12px;
+                            border:1px solid #d1d5db;
+                            background:#f9fafb;
+                            cursor:pointer;
+                        ">
+                        <input type="checkbox" wire:model.live="crearCuentaNueva"
+                            style="
+                                width:20px;
+                                height:20px;
+                                margin-top:2px;
+                                accent-color:#2563eb;
+                                cursor:pointer;
+                            ">
+
+                        <div>
+                            <div style="font-weight:700; color:#111827;">
+                                Crear cuenta nueva
+                            </div>
+                            <div style="font-size:13px; color:#6b7280; margin-top:4px;">
+                                Si no marcas esta opción, el ticket se agregará a la cuenta abierta de hoy del cliente.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
                     <button type="button" wire:click="cerrarModalCobro"
                         style="
@@ -480,7 +521,8 @@
                         Cancelar
                     </button>
 
-                    <button type="button" wire:click="confirmarCobro"
+                    <button type="button" wire:click="confirmarCobro" wire:loading.attr="disabled"
+                        wire:target="confirmarCobro"
                         style="
                             padding:12px 16px;
                             border:none;

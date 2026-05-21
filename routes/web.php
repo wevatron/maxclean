@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CuentaTicketController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QrLoginController;
 use App\Models\CorteCaja;
@@ -25,3 +26,9 @@ Route::get('/cortes-caja/{corte}/pdf', [CorteCajaPdfController::class, 'show'])
 
 Route::middleware(['auth'])->get('/tickets/{ticket}/print', [TicketPrintController::class, 'show'])
     ->name('tickets.print');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cuentas/{cuenta}/ticket', [CuentaTicketController::class, 'show'])
+        ->name('cuentas.ticket');
+});

@@ -24,6 +24,8 @@ class TicketResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
     protected static ?string $recordTitleAttribute = 'Ticket';
+    protected static ?string $navigationLabel = 'Tickets en proceso';
+    protected static ?int $navigationSort = 7;
 
     public static function form(Schema $schema): Schema
     {

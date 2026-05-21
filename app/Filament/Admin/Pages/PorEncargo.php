@@ -2,24 +2,30 @@
 
 namespace App\Filament\Admin\Pages;
 
-use Filament\Pages\Page;
-use Illuminate\Support\Facades\DB;
+use App\Models\Cuenta;
 use App\Models\Prenda;
-use App\Models\Ticket;
 use App\Models\Servicio;
-use App\Models\TicketStatus;
 use App\Models\Sucursal;
+use App\Models\Ticket;
+use App\Models\TicketStatus;
 use App\Models\User as Cliente;
-use Filament\Notifications\Notification;
-use Filament\Support\Icons\Heroicon;
 use BackedEnum;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 
 class PorEncargo extends Page
 {
     public $modoExpress = false;
+
     protected string $view = 'filament.admin.pages.por-encargo';
+
     protected static ?string $navigationLabel = 'Por pieza';
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
+    protected static ?int $navigationSort = 1;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingBag;
+
     public $clientePanelAbierto = true;
 
     public $sucursalId;
@@ -45,10 +51,12 @@ class PorEncargo extends Page
     public $clienteSeleccionadoId = null;
     public $clienteSeleccionadoNombre = null;
 
+    public $crearCuentaNueva = false;
+
     public function mount()
     {
         $sucursales = auth()->user()->sucursales;
-        
+
         if ($sucursales->count() === 1) {
             $this->sucursalId = $sucursales->first()->id;
             $this->accesoValido = true;
@@ -60,6 +68,7 @@ class PorEncargo extends Page
         } else {
             $this->mensajeAcceso = 'Tiene más de una sucursal asignada.';
         }
+
         $this->clientePanelAbierto = true;
     }
 
@@ -72,16 +81,18 @@ class PorEncargo extends Page
     {
         if (! $this->sucursalId) {
             $this->prendas = collect();
+
             return;
         }
 
         $sucursalId = $this->sucursalId;
 
-        $this->prendas = Prenda::porPieza()->with([
-            'precios' => function ($query) use ($sucursalId) {
-                $query->where('sucursal_id', $sucursalId);
-            }
-        ])
+        $this->prendas = Prenda::porPieza()
+            ->with([
+                'precios' => function ($query) use ($sucursalId) {
+                    $query->where('sucursal_id', $sucursalId);
+                },
+            ])
             ->where('nombre', 'like', "%{$this->search}%")
             ->limit(9)
             ->get();
@@ -96,6 +107,7 @@ class PorEncargo extends Page
     {
         if (blank($this->clienteSearch)) {
             $this->clientesEncontrados = [];
+
             return;
         }
 
@@ -137,13 +149,15 @@ class PorEncargo extends Page
         $this->clienteSearch = '';
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
+        $this->crearCuentaNueva = false;
     }
+
     public function agregarPrenda($id)
     {
         $prenda = Prenda::with([
             'precios' => function ($query) {
                 $query->where('sucursal_id', $this->sucursalId);
-            }
+            },
         ])->find($id);
 
         if (! $prenda) {
@@ -162,6 +176,7 @@ class PorEncargo extends Page
                 ->title('Esta prenda no tiene precio configurado en esta sucursal')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -169,6 +184,7 @@ class PorEncargo extends Page
             if ($item['prenda_id'] == $id) {
                 $this->items[$index]['cantidad']++;
                 $this->calcularTotal();
+
                 return;
             }
         }
@@ -186,6 +202,7 @@ class PorEncargo extends Page
 
         $this->calcularTotal();
     }
+
     public function eliminarItem($index)
     {
         if (! isset($this->items[$index])) {
@@ -205,11 +222,11 @@ class PorEncargo extends Page
     public function calcularTotal()
     {
         $this->total = collect($this->items)->sum(
-            fn($item) => $this->calcularSubtotalItem($item)
+            fn ($item) => $this->calcularSubtotalItem($item)
         );
     }
 
-    protected function calcularSubtotalItem(array $item): float
+    public function calcularSubtotalItem(array $item): float
     {
         $cantidad = (int) ($item['cantidad'] ?? 0);
         $precioNormal = (float) ($item['precio_normal'] ?? $item['precio'] ?? 0);
@@ -240,28 +257,31 @@ class PorEncargo extends Page
         $this->calcularTotal();
     }
 
-    public function abrirModalCobro()
-    {
-        if (empty($this->items)) {
-            Notification::make()
-                ->title('Ticket vacío')
-                ->danger()
-                ->send();
-            return;
-        }
+public function abrirModalCobro()
+{
+    if (empty($this->items)) {
+        Notification::make()
+            ->title('Ticket vacío')
+            ->danger()
+            ->send();
 
-        if (! $this->clienteSeleccionadoId) {
-            Notification::make()
-                ->title('Debes seleccionar un cliente')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        $this->montoTemporal = $this->total;
-        $this->modalCobroAbierto = true;
+        return;
     }
 
+    if (! $this->clienteSeleccionadoId) {
+        Notification::make()
+            ->title('Debes seleccionar un cliente')
+            ->danger()
+            ->send();
+
+        return;
+    }
+
+    $this->montoTemporal = 0;
+    $this->montoPago = 0;
+    $this->crearCuentaNueva = false;
+    $this->modalCobroAbierto = true;
+}
     public function cerrarModalCobro()
     {
         $this->modalCobroAbierto = false;
@@ -282,29 +302,33 @@ class PorEncargo extends Page
         $this->montoTemporal = $this->total;
     }
 
-    public function confirmarCobro()
-    {
-        if ($this->montoTemporal < 0) {
-            Notification::make()
-                ->title('Monto inválido')
-                ->danger()
-                ->send();
-            return;
-        }
+public function confirmarCobro()
+{
+    $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
 
-        if ($this->montoTemporal > $this->total) {
-            Notification::make()
-                ->title('El anticipo no puede ser mayor al total')
-                ->danger()
-                ->send();
-            return;
-        }
+    if ($this->montoTemporal < 0) {
+        Notification::make()
+            ->title('Monto inválido')
+            ->danger()
+            ->send();
 
-        $this->montoPago = $this->montoTemporal;
-        $this->modalCobroAbierto = false;
-
-        $this->crearTicket();
+        return;
     }
+
+    if ($this->montoTemporal > $this->total) {
+        Notification::make()
+            ->title('El anticipo no puede ser mayor al total')
+            ->danger()
+            ->send();
+
+        return;
+    }
+
+    $this->montoPago = $this->montoTemporal;
+    $this->modalCobroAbierto = false;
+
+    $this->crearTicket();
+}
 
     public function crearTicket()
     {
@@ -317,6 +341,7 @@ class PorEncargo extends Page
                 ->title('No hay prendas en el ticket')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -325,6 +350,7 @@ class PorEncargo extends Page
                 ->title('Debes seleccionar un cliente')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -332,10 +358,12 @@ class PorEncargo extends Page
 
         try {
             DB::transaction(function () {
+                $cuenta = $this->obtenerOCrearCuenta();
+
                 $numero = Ticket::generarNumero($this->sucursalId);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
-                $statusPagadoId   = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
+                $statusPagadoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
 
                 if (! $statusRecibidoId) {
                     throw new \Exception('No existe el status "recibido" en ticket_statuses.');
@@ -344,6 +372,7 @@ class PorEncargo extends Page
                 if (! $statusPagadoId) {
                     throw new \Exception('No existe el status "pagado" en ticket_statuses.');
                 }
+
                 $ticket = Ticket::create([
                     'sucursal_id' => $this->sucursalId,
                     'user_id'     => auth()->id(),
@@ -353,6 +382,10 @@ class PorEncargo extends Page
                     'tipo'        => $this->modoExpress ? 'encargo_express' : 'encargo',
                     'total'       => $this->total,
                 ]);
+
+                $ticket->forceFill([
+                    'cuenta_id' => $cuenta->id,
+                ])->save();
 
                 $ticket->procesos()->create([
                     'proceso' => 'detallado',
@@ -379,7 +412,7 @@ class PorEncargo extends Page
                 }
 
                 if ($this->montoPago > 0) {
-                    $ticket->pagos()->create([
+                    $pago = $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
                         'monto'       => $this->montoPago,
                         'user_id'     => auth()->id(),
@@ -388,11 +421,14 @@ class PorEncargo extends Page
                         'tipo_movimiento' => 'venta',
                     ]);
 
-                    // 🎁 REGISTRAR PUNTOS DE RECOMPENSA
+                    $pago->forceFill([
+                        'cuenta_id' => $cuenta->id,
+                    ])->save();
+
                     \App\Models\Punto::create([
                         'user_id'      => $this->clienteSeleccionadoId,
                         'asignado_por' => auth()->id(),
-                        'puntos'       => (int) round($this->montoPago), // 1 punto por peso
+                        'puntos'       => (int) round($this->montoPago),
                         'fecha'        => now(),
                         'tikete'       => $ticket->numero,
                         'sucursal_id'  => $this->sucursalId,
@@ -400,15 +436,18 @@ class PorEncargo extends Page
 
                     $ticket->refresh();
 
-                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->sum('monto'))) <= 0) {
+                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->where('cancelado', false)->sum('monto'))) <= 0) {
                         $ticket->update([
                             'status_id' => $statusPagadoId,
                         ]);
                     }
                 }
 
+                $this->recalcularCuenta($cuenta);
+
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
+                    ->body("Asignado a la cuenta {$cuenta->numero}")
                     ->success()
                     ->send();
             });
@@ -425,8 +464,11 @@ class PorEncargo extends Page
                 'clienteSeleccionadoNombre',
                 'clientePanelAbierto',
                 'modoExpress',
+                'crearCuentaNueva',
             ]);
+
             $this->modoExpress = false;
+            $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
             $this->modalCobroAbierto = false;
@@ -443,16 +485,100 @@ class PorEncargo extends Page
         }
     }
 
-    public function getHeading(): string
+    protected function obtenerOCrearCuenta(): Cuenta
     {
-        if (! $this->sucursalId) {
-            return 'Sin sucursal';
+        if (! $this->crearCuentaNueva) {
+            $cuenta = Cuenta::query()
+                ->where('cliente_id', $this->clienteSeleccionadoId)
+                ->where('sucursal_id', $this->sucursalId)
+                ->whereIn('estatus', ['abierta', 'parcial'])
+                ->whereDate('abierta_en', now()->toDateString())
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if ($cuenta) {
+                return $cuenta;
+            }
         }
 
-        $sucursal = Sucursal::find($this->sucursalId);
+        $cuenta = new Cuenta();
 
-        return 'POR ENCARGO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        $cuenta->forceFill([
+            'cliente_id' => $this->clienteSeleccionadoId,
+            'sucursal_id' => $this->sucursalId,
+            'user_id' => auth()->id(),
+            'numero' => null,
+            'total' => 0,
+            'total_pagado' => 0,
+            'saldo' => 0,
+            'estatus' => 'abierta',
+            'abierta_en' => now(),
+            'cerrada_en' => null,
+            'notas' => null,
+        ])->save();
+
+        $cuenta->forceFill([
+            'numero' => $this->generarNumeroCuenta($cuenta),
+        ])->save();
+
+        return $cuenta;
     }
+
+    protected function generarNumeroCuenta(Cuenta $cuenta): string
+    {
+        return 'C-' . str_pad((string) $cuenta->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    protected function recalcularCuenta(Cuenta $cuenta): void
+    {
+        $ticketIds = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->pluck('id');
+
+        $total = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->sum('total');
+
+        $totalPagado = DB::table('ticket_pagos')
+            ->whereIn('ticket_id', $ticketIds)
+            ->where('cancelado', false)
+            ->sum('monto');
+
+        $saldo = max((float) $total - (float) $totalPagado, 0);
+
+        $estatus = 'abierta';
+
+        if ($saldo <= 0 && $total > 0) {
+            $estatus = 'pagada';
+        } elseif ($totalPagado > 0 && $saldo > 0) {
+            $estatus = 'parcial';
+        }
+
+        $cuenta->forceFill([
+            'total' => $total,
+            'total_pagado' => $totalPagado,
+            'saldo' => $saldo,
+            'estatus' => $estatus,
+            'cerrada_en' => $estatus === 'pagada' ? now() : null,
+        ])->save();
+    }
+
+public function getHeading(): string
+{
+    return '';
+}
+
+public function getTitle(): string
+{
+    if (! $this->sucursalId) {
+        return 'Sin sucursal';
+    }
+
+    $sucursal = Sucursal::find($this->sucursalId);
+
+    return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+}
 
     public static function canAccess(): bool
     {

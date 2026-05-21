@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Models\Cuenta;
 use App\Models\Punto;
 use App\Models\Servicio;
 use App\Models\Sucursal;
@@ -20,7 +21,9 @@ class Autoservicio extends Page
 
     protected static ?string $navigationLabel = 'Autoservicio';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+    protected static ?int $navigationSort = 3;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
     public $clientePanelAbierto = true;
 
@@ -45,6 +48,8 @@ class Autoservicio extends Page
     public $clientesEncontrados = [];
     public $clienteSeleccionadoId = null;
     public $clienteSeleccionadoNombre = null;
+
+    public $crearCuentaNueva = false;
 
     public function mount()
     {
@@ -90,6 +95,7 @@ class Autoservicio extends Page
     {
         if (blank($this->clienteSearch)) {
             $this->clientesEncontrados = [];
+
             return;
         }
 
@@ -131,6 +137,7 @@ class Autoservicio extends Page
         $this->clienteSearch = '';
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
+        $this->crearCuentaNueva = false;
     }
 
     public function agregarServicio($id)
@@ -146,6 +153,7 @@ class Autoservicio extends Page
                 $this->items[$index]['cantidad']++;
                 $this->items[$index]['subtotal'] = $this->items[$index]['cantidad'] * $this->items[$index]['precio_unitario'];
                 $this->calcularTotal();
+
                 return;
             }
         }
@@ -204,7 +212,11 @@ class Autoservicio extends Page
             return;
         }
 
-        $this->montoTemporal = $this->total;
+        $this->calcularTotal();
+
+        $this->montoTemporal = 0;
+        $this->montoPago = 0;
+        $this->crearCuentaNueva = false;
         $this->modalCobroAbierto = true;
     }
 
@@ -220,16 +232,22 @@ class Autoservicio extends Page
 
     public function montoMitad()
     {
+        $this->calcularTotal();
         $this->montoTemporal = round($this->total / 2, 2);
     }
 
     public function montoTotal()
     {
+        $this->calcularTotal();
         $this->montoTemporal = $this->total;
     }
 
     public function confirmarCobro()
     {
+        $this->calcularTotal();
+
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+
         if ($this->montoTemporal < 0) {
             Notification::make()
                 ->title('Monto inválido')
@@ -278,10 +296,14 @@ class Autoservicio extends Page
             return;
         }
 
+        $this->calcularTotal();
+
         $this->procesando = true;
 
         try {
             DB::transaction(function () {
+                $cuenta = $this->obtenerOCrearCuenta();
+
                 $numero = Ticket::generarNumero($this->sucursalId);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
@@ -305,16 +327,19 @@ class Autoservicio extends Page
                     'total' => $this->total,
                 ]);
 
+                $ticket->forceFill([
+                    'cuenta_id' => $cuenta->id,
+                ])->save();
+
                 foreach ($this->items as $item) {
                     $ticket->servicios()->attach($item['servicio_id'], [
                         'cantidad' => $item['cantidad'],
                         'precio_unitario' => $item['precio_unitario'],
-                        'subtotal' => $item['subtotal'],
                     ]);
                 }
 
                 if ($this->montoPago > 0) {
-                    $ticket->pagos()->create([
+                    $pago = $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
                         'monto' => $this->montoPago,
                         'user_id' => auth()->id(),
@@ -322,6 +347,10 @@ class Autoservicio extends Page
                         'cancelado' => false,
                         'tipo_movimiento' => 'venta',
                     ]);
+
+                    $pago->forceFill([
+                        'cuenta_id' => $cuenta->id,
+                    ])->save();
 
                     Punto::create([
                         'user_id' => $this->clienteSeleccionadoId,
@@ -334,15 +363,18 @@ class Autoservicio extends Page
 
                     $ticket->refresh();
 
-                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->sum('monto'))) <= 0) {
+                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->where('cancelado', false)->sum('monto'))) <= 0) {
                         $ticket->update([
                             'status_id' => $statusPagadoId,
                         ]);
                     }
                 }
 
+                $this->recalcularCuenta($cuenta);
+
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
+                    ->body("Asignado a la cuenta {$cuenta->numero}")
                     ->success()
                     ->send();
             });
@@ -358,8 +390,10 @@ class Autoservicio extends Page
                 'clienteSeleccionadoId',
                 'clienteSeleccionadoNombre',
                 'clientePanelAbierto',
+                'crearCuentaNueva',
             ]);
 
+            $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
             $this->modalCobroAbierto = false;
@@ -376,7 +410,91 @@ class Autoservicio extends Page
         }
     }
 
-    public function getHeading(): string
+    protected function obtenerOCrearCuenta(): Cuenta
+    {
+        if (! $this->crearCuentaNueva) {
+            $cuenta = Cuenta::query()
+                ->where('cliente_id', $this->clienteSeleccionadoId)
+                ->where('sucursal_id', $this->sucursalId)
+                ->whereIn('estatus', ['abierta', 'parcial'])
+                ->whereDate('abierta_en', now()->toDateString())
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if ($cuenta) {
+                return $cuenta;
+            }
+        }
+
+        $cuenta = new Cuenta();
+
+        $cuenta->forceFill([
+            'cliente_id' => $this->clienteSeleccionadoId,
+            'sucursal_id' => $this->sucursalId,
+            'user_id' => auth()->id(),
+            'numero' => null,
+            'total' => 0,
+            'total_pagado' => 0,
+            'saldo' => 0,
+            'estatus' => 'abierta',
+            'abierta_en' => now(),
+            'cerrada_en' => null,
+            'notas' => null,
+        ])->save();
+
+        $cuenta->forceFill([
+            'numero' => $this->generarNumeroCuenta($cuenta),
+        ])->save();
+
+        return $cuenta;
+    }
+
+    protected function generarNumeroCuenta(Cuenta $cuenta): string
+    {
+        return 'C-' . str_pad((string) $cuenta->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    protected function recalcularCuenta(Cuenta $cuenta): void
+    {
+        $ticketIds = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->pluck('id');
+
+        $total = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->sum('total');
+
+        $totalPagado = DB::table('ticket_pagos')
+            ->whereIn('ticket_id', $ticketIds)
+            ->where('cancelado', false)
+            ->sum('monto');
+
+        $saldo = max((float) $total - (float) $totalPagado, 0);
+
+        $estatus = 'abierta';
+
+        if ($saldo <= 0 && $total > 0) {
+            $estatus = 'pagada';
+        } elseif ($totalPagado > 0 && $saldo > 0) {
+            $estatus = 'parcial';
+        }
+
+        $cuenta->forceFill([
+            'total' => $total,
+            'total_pagado' => $totalPagado,
+            'saldo' => $saldo,
+            'estatus' => $estatus,
+            'cerrada_en' => $estatus === 'pagada' ? now() : null,
+        ])->save();
+    }
+
+public function getHeading(): string
+    {
+        return '';
+    }
+
+    public function getTitle(): string
     {
         if (! $this->sucursalId) {
             return 'Sin sucursal';
@@ -384,18 +502,27 @@ class Autoservicio extends Page
 
         $sucursal = Sucursal::find($this->sucursalId);
 
-        return 'AUTOSERVICIO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
     }
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('View:Autoservicio')
-            || auth()->user()?->can('View:PorEncargo');
+        return auth()->user()?->can('View:Autoservicio');
     }
 
     public function toggleClientePanel()
     {
         $this->clientePanelAbierto = ! $this->clientePanelAbierto;
+    }
+
+    public function abrirClientePanel()
+    {
+        $this->clientePanelAbierto = true;
+    }
+
+    public function cerrarClientePanel()
+    {
+        $this->clientePanelAbierto = false;
     }
 
     public function getCrearClienteUrl(): string

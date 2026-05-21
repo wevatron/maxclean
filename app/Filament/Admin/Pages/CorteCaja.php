@@ -21,6 +21,8 @@ class CorteCaja extends Page
 
     protected string $view = 'filament.admin.pages.corte-caja';
 
+    protected static ?int $navigationSort = 4;
+
     public $fecha;
     public $turno = 'matutino';
 

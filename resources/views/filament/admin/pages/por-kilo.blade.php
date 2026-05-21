@@ -14,15 +14,21 @@
             {{ $mensajeAcceso }}
         </div>
     @else
+        @php
+            $sucursal = \App\Models\Sucursal::find($this->sucursalId);
+        @endphp
+
+        <div class="por-kilo-heading">
+            <p>
+                POR KILO - Sucursal: {{ $sucursal?->nombre ?? 'Sin nombre' }}
+            </p>
+        </div>
         <div style="display:flex; height:80vh; width:100%; background:#2b2b2b;">
 
             <!-- IZQUIERDA -->
             <div style="width:70%; padding:40px; overflow:auto; box-sizing:border-box;">
 
-                <input
-                    type="text"
-                    wire:model.live="search"
-                    placeholder="Buscar prenda..."
+                <input type="text" wire:model.live="search" placeholder="Buscar prenda..."
                     style="
                         width:100%;
                         padding:16px;
@@ -32,14 +38,12 @@
                         margin-bottom:30px;
                         background:#3a3a3a;
                         color:white;
-                    "
-                />
+                    " />
 
                 @if ($clienteSeleccionadoId)
                     <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
                         @foreach ($prendas as $prenda)
-                            <div
-                                wire:click="agregarPrenda({{ $prenda->id }})"
+                            <div wire:click="agregarPrenda({{ $prenda->id }})"
                                 style="
                                     padding:20px;
                                     border-radius:18px;
@@ -48,8 +52,7 @@
                                     border:1px solid #4a4a4a;
                                     color:white;
                                     transition:.2s ease;
-                                "
-                            >
+                                ">
                                 <div style="font-weight:600; font-size:18px;">
                                     {{ $prenda->nombre }}
                                 </div>
@@ -83,8 +86,7 @@
                             font-weight:600;
                             text-align:center;
                             padding:30px;
-                        "
-                    >
+                        ">
                         Selecciona un cliente para mostrar las prendas
                     </div>
                 @endif
@@ -100,8 +102,7 @@
                     display:flex;
                     flex-direction:column;
                     position:relative;
-                "
-            >
+                ">
 
                 <div
                     style="
@@ -110,8 +111,7 @@
                         border-radius:16px;
                         background:#0f172a;
                         border:1px solid #1f2937;
-                    "
-                >
+                    ">
                     <div
                         style="
                             display:flex;
@@ -119,8 +119,7 @@
                             justify-content:space-between;
                             gap:12px;
                             margin-bottom:{{ $clientePanelAbierto ? '16px' : '0' }};
-                        "
-                    >
+                        ">
                         <div>
                             <div style="font-size:20px; font-weight:700;">Cliente</div>
 
@@ -135,9 +134,7 @@
                             @endif
                         </div>
 
-                        <button
-                            type="button"
-                            wire:click="toggleClientePanel"
+                        <button type="button" wire:click="toggleClientePanel"
                             style="
                                 width:38px;
                                 height:38px;
@@ -153,8 +150,7 @@
                                 justify-content:center;
                                 flex-shrink:0;
                             "
-                            title="Mostrar / ocultar cliente"
-                        >
+                            title="Mostrar / ocultar cliente">
                             @if ($clientePanelAbierto)
                                 −
                             @else
@@ -165,9 +161,7 @@
 
                     @if ($clientePanelAbierto)
                         <div style="margin-bottom:18px; position:relative;">
-                            <input
-                                type="text"
-                                wire:model.live.debounce.300ms="clienteSearch"
+                            <input type="text" wire:model.live.debounce.300ms="clienteSearch"
                                 placeholder="Buscar por nombre, teléfono o correo..."
                                 style="
                                     width:100%;
@@ -177,8 +171,7 @@
                                     background:#1f2937;
                                     color:white;
                                     font-size:16px;
-                                "
-                            />
+                                " />
 
                             @if (!empty($clientesEncontrados))
                                 <div
@@ -196,12 +189,9 @@
                                         box-shadow:0 10px 25px rgba(0,0,0,.35);
                                         max-height:260px;
                                         overflow-y:auto;
-                                    "
-                                >
+                                    ">
                                     @foreach ($clientesEncontrados as $cliente)
-                                        <button
-                                            type="button"
-                                            wire:click="seleccionarCliente({{ $cliente['id'] }})"
+                                        <button type="button" wire:click="seleccionarCliente({{ $cliente['id'] }})"
                                             style="
                                                 width:100%;
                                                 text-align:left;
@@ -211,8 +201,7 @@
                                                 color:white;
                                                 cursor:pointer;
                                                 border-bottom:1px solid #1f2937;
-                                            "
-                                        >
+                                            ">
                                             <div style="font-weight:600;">
                                                 {{ $cliente['name'] }}
                                             </div>
@@ -239,16 +228,13 @@
                                     justify-content:space-between;
                                     align-items:center;
                                     gap:12px;
-                                "
-                            >
+                                ">
                                 <div>
                                     <div style="font-size:13px; color:#9ca3af;">Cliente seleccionado</div>
                                     <div style="font-weight:700;">{{ $clienteSeleccionadoNombre }}</div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    wire:click="limpiarCliente"
+                                <button type="button" wire:click="limpiarCliente"
                                     style="
                                         background:#ef4444;
                                         color:white;
@@ -256,16 +242,13 @@
                                         padding:8px 12px;
                                         border-radius:10px;
                                         cursor:pointer;
-                                    "
-                                >
+                                    ">
                                     Quitar
                                 </button>
                             </div>
                         @endif
 
-                        <a
-                            href="{{ $this->getCrearClienteUrl() }}"
-                            target="_blank"
+                        <a href="{{ $this->getCrearClienteUrl() }}" target="_blank"
                             style="
                                 display:inline-block;
                                 width:100%;
@@ -279,13 +262,11 @@
                                 text-align:center;
                                 box-sizing:border-box;
                                 font-size:10px;
-                            "
-                        >
+                            ">
                             Registrar cliente en otra pestaña
                         </a>
                     @endif
                 </div>
-
 
                 <div style="flex:1; overflow:auto;">
                     @forelse ($items as $index => $item)
@@ -298,8 +279,7 @@
                                 margin-bottom:12px;
                                 background:#1f2937;
                                 border-radius:14px;
-                            "
-                        >
+                            ">
                             <div>
                                 <div style="font-weight:600;">
                                     {{ $item['nombre'] }}
@@ -314,17 +294,14 @@
                                     Registro
                                 </span>
 
-                                <button
-                                    type="button"
-                                    wire:click="eliminarItem({{ $index }})"
+                                <button type="button" wire:click="eliminarItem({{ $index }})"
                                     style="
                                         background:none;
                                         border:none;
                                         color:#ef4444;
                                         font-size:22px;
                                         cursor:pointer;
-                                    "
-                                >
+                                    ">
                                     ×
                                 </button>
                             </div>
@@ -337,8 +314,7 @@
                                 background:#1f2937;
                                 color:#9ca3af;
                                 text-align:center;
-                            "
-                        >
+                            ">
                             Aún no has agregado prendas al ticket.
                         </div>
                     @endforelse
@@ -358,9 +334,7 @@
                     </div>
 
                     @if ($clienteSeleccionadoId)
-                        <button
-                            type="button"
-                            wire:click="abrirModalCobro"
+                        <button type="button" wire:click="abrirModalCobro"
                             style="
                                 width:100%;
                                 padding:10px;
@@ -372,8 +346,7 @@
                                 margin-top:10px;
                                 color:white;
                                 cursor:pointer;
-                            "
-                        >
+                            ">
                             COBRAR
                         </button>
                     @else
@@ -386,8 +359,7 @@
                                 color:#9ca3af;
                                 text-align:center;
                                 font-size:14px;
-                            "
-                        >
+                            ">
                             Selecciona un cliente para continuar
                         </div>
                     @endif
@@ -406,8 +378,7 @@
                 align-items:center;
                 justify-content:center;
                 z-index:9999;
-            "
-        >
+            ">
             <div
                 style="
                     width:100%;
@@ -416,8 +387,7 @@
                     border-radius:18px;
                     padding:24px;
                     box-shadow:0 25px 50px rgba(0,0,0,.35);
-                "
-            >
+                ">
                 <div style="font-size:22px; font-weight:700; margin-bottom:18px; color:#111827;">
                     Registrar pago por kilo
                 </div>
@@ -427,19 +397,14 @@
                         Kilos
                     </label>
 
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        wire:model.live="kilos"
+                    <input type="number" step="0.01" min="0" wire:model.live="kilos"
                         style="
                             width:100%;
                             padding:12px;
                             border-radius:10px;
                             border:1px solid #d1d5db;
                             color:#111827;
-                        "
-                    />
+                        " />
                 </div>
 
                 <div style="margin-bottom:16px;">
@@ -447,16 +412,14 @@
                         Tipo de lavado
                     </label>
 
-                    <select
-                        wire:model.live="tipoLavado"
+                    <select wire:model.live="tipoLavado"
                         style="
                             width:100%;
                             padding:12px;
                             border-radius:10px;
                             border:1px solid #d1d5db;
                             color:#111827;
-                        "
-                    >
+                        ">
                         <option value="basico">Básico ($22/kg)</option>
                         <option value="premium">Premium ($28/kg)</option>
                         <option value="extra_lavado">Extra lavado ($32/kg)</option>
@@ -472,8 +435,7 @@
                         border-radius:12px;
                         background:#f3f4f6;
                         color:#111827;
-                    "
-                >
+                    ">
                     <div style="font-size:14px; color:#6b7280;">Precio actual por kilo</div>
                     <div style="font-size:20px; font-weight:700;">
                         ${{ number_format($this->getPrecioPorKilo(), 2) }}
@@ -486,9 +448,7 @@
                 </div>
 
                 <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-                    <button
-                        type="button"
-                        wire:click="montoCero"
+                    <button type="button" wire:click="montoCero"
                         style="
                             padding:10px 14px;
                             border:none;
@@ -496,14 +456,11 @@
                             background:#6b7280;
                             color:white;
                             cursor:pointer;
-                        "
-                    >
+                        ">
                         0%
                     </button>
 
-                    <button
-                        type="button"
-                        wire:click="montoMitad"
+                    <button type="button" wire:click="montoMitad"
                         style="
                             padding:10px 14px;
                             border:none;
@@ -511,14 +468,11 @@
                             background:#f59e0b;
                             color:white;
                             cursor:pointer;
-                        "
-                    >
+                        ">
                         50%
                     </button>
 
-                    <button
-                        type="button"
-                        wire:click="montoTotal"
+                    <button type="button" wire:click="montoTotal"
                         style="
                             padding:10px 14px;
                             border:none;
@@ -526,8 +480,7 @@
                             background:#22c55e;
                             color:white;
                             cursor:pointer;
-                        "
-                    >
+                        ">
                         100%
                     </button>
                 </div>
@@ -537,46 +490,69 @@
                         Monto a pagar / anticipo
                     </label>
 
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        wire:model.live="montoTemporal"
+                    <input type="number" step="0.01" min="0" wire:model.live="montoTemporal"
                         style="
                             width:100%;
                             padding:12px;
                             border-radius:10px;
                             border:1px solid #d1d5db;
                             color:#111827;
-                        "
-                    />
+                        " />
                 </div>
 
-                <div style="margin-bottom:20px;">
+                <div style="margin-bottom:16px;">
                     <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
                         Método de pago
                     </label>
 
-                    <select
-                        wire:model="metodoPago"
+                    <select wire:model="metodoPago"
                         style="
                             width:100%;
                             padding:12px;
                             border-radius:10px;
                             border:1px solid #d1d5db;
                             color:#111827;
-                        "
-                    >
+                        ">
                         <option value="efectivo">Efectivo</option>
                         <option value="transferencia">Transferencia</option>
                         <option value="tarjeta">Tarjeta</option>
                     </select>
                 </div>
 
+                <div style="margin-bottom:20px;">
+                    <label
+                        style="
+                            display:flex;
+                            gap:12px;
+                            align-items:flex-start;
+                            padding:14px;
+                            border-radius:12px;
+                            border:1px solid #d1d5db;
+                            background:#f9fafb;
+                            cursor:pointer;
+                        ">
+                        <input type="checkbox" wire:model.live="crearCuentaNueva"
+                            style="
+                                width:20px;
+                                height:20px;
+                                margin-top:2px;
+                                accent-color:#2563eb;
+                                cursor:pointer;
+                            ">
+
+                        <div>
+                            <div style="font-weight:700; color:#111827;">
+                                Crear cuenta nueva
+                            </div>
+                            <div style="font-size:13px; color:#6b7280; margin-top:4px;">
+                                Si no marcas esta opción, el ticket se agregará a la cuenta abierta de hoy del cliente.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button
-                        type="button"
-                        wire:click="cerrarModalCobro"
+                    <button type="button" wire:click="cerrarModalCobro"
                         style="
                             padding:12px 16px;
                             border:none;
@@ -584,14 +560,12 @@
                             background:#6b7280;
                             color:white;
                             cursor:pointer;
-                        "
-                    >
+                        ">
                         Cancelar
                     </button>
 
-                    <button
-                        type="button"
-                        wire:click="confirmarCobro"
+                    <button type="button" wire:click="confirmarCobro" wire:loading.attr="disabled"
+                        wire:target="confirmarCobro"
                         style="
                             padding:12px 16px;
                             border:none;
@@ -599,8 +573,7 @@
                             background:#22c55e;
                             color:white;
                             cursor:pointer;
-                        "
-                    >
+                        ">
                         Confirmar
                     </button>
                 </div>

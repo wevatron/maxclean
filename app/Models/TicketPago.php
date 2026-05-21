@@ -9,6 +9,8 @@ class TicketPago extends Model
 {
     protected $fillable = [
         'ticket_id',
+        'cuenta_id',
+        'cuenta_pago_id',
         'proveedor_id',
         'metodo_pago',
         'monto',
@@ -27,6 +29,15 @@ class TicketPago extends Model
         'monto' => 'decimal:2',
     ];
 
+    public function cuenta()
+    {
+        return $this->belongsTo(Cuenta::class, 'cuenta_id');
+    }
+
+    public function cuentaPago()
+    {
+        return $this->belongsTo(CuentaPago::class, 'cuenta_pago_id');
+    }
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);

@@ -28,6 +28,7 @@ class ClienteResource extends Resource
     protected static ?string $recordTitleAttribute = 'Clientes';
     protected static ?string $navigationLabel = 'Clientes';
     protected static ?string $pluralLabel = 'Clientes';
+    protected static ?int $navigationSort = 5;
 
     public static function getModelLabel(): string
     {

@@ -2,24 +2,26 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Models\Cuenta;
 use App\Models\Prenda;
 use App\Models\Sucursal;
+use App\Models\Ticket;
+use App\Models\TicketStatus;
 use App\Models\User as Cliente;
+use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use BackedEnum;
 use Illuminate\Support\Facades\DB;
-use App\Models\Ticket;
-use App\Models\TicketStatus;
 
 class PorKilo extends Page
 {
     protected string $view = 'filament.admin.pages.por-kilo';
 
     protected static ?string $navigationLabel = 'Por kilo';
+    protected static ?int $navigationSort = 2;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 
     public $clientePanelAbierto = true;
 
@@ -48,6 +50,8 @@ class PorKilo extends Page
     public $kilos = null;
     public $tipoLavado = 'basico';
 
+    public $crearCuentaNueva = false;
+
     public function mount()
     {
         $sucursales = auth()->user()->sucursales;
@@ -75,6 +79,7 @@ class PorKilo extends Page
     {
         if (! $this->sucursalId) {
             $this->prendas = collect();
+
             return;
         }
 
@@ -94,6 +99,7 @@ class PorKilo extends Page
     {
         if (blank($this->clienteSearch)) {
             $this->clientesEncontrados = [];
+
             return;
         }
 
@@ -135,6 +141,7 @@ class PorKilo extends Page
         $this->clienteSearch = '';
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
+        $this->crearCuentaNueva = false;
     }
 
     public function agregarPrenda($id)
@@ -148,6 +155,7 @@ class PorKilo extends Page
         foreach ($this->items as $index => $item) {
             if ($item['prenda_id'] == $id) {
                 $this->items[$index]['cantidad']++;
+
                 return;
             }
         }
@@ -204,17 +212,20 @@ class PorKilo extends Page
 
     public function abrirModalCobro()
     {
-
         if (! $this->clienteSeleccionadoId) {
             Notification::make()
                 ->title('Debes seleccionar un cliente')
                 ->danger()
                 ->send();
+
             return;
         }
 
         $this->calcularTotal();
-        $this->montoTemporal = $this->total;
+
+        $this->montoTemporal = 0;
+        $this->montoPago = 0;
+        $this->crearCuentaNueva = false;
         $this->modalCobroAbierto = true;
     }
 
@@ -244,11 +255,14 @@ class PorKilo extends Page
     {
         $this->calcularTotal();
 
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+
         if ((float) $this->kilos <= 0) {
             Notification::make()
                 ->title('Debes capturar los kilos')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -257,6 +271,7 @@ class PorKilo extends Page
                 ->title('Monto inválido')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -265,6 +280,7 @@ class PorKilo extends Page
                 ->title('El anticipo no puede ser mayor al total')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -285,6 +301,7 @@ class PorKilo extends Page
                 ->title('Debes seleccionar un cliente')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -293,6 +310,7 @@ class PorKilo extends Page
                 ->title('Debes capturar los kilos')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -302,6 +320,8 @@ class PorKilo extends Page
 
         try {
             DB::transaction(function () {
+                $cuenta = $this->obtenerOCrearCuenta();
+
                 $numero = Ticket::generarNumero($this->sucursalId);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
@@ -330,6 +350,10 @@ class PorKilo extends Page
                     'precio_kilo' => $this->getPrecioPorKilo(),
                 ]);
 
+                $ticket->forceFill([
+                    'cuenta_id' => $cuenta->id,
+                ])->save();
+
                 $ticket->procesos()->create([
                     'proceso' => 'detallado',
                     'completado' => false,
@@ -345,7 +369,7 @@ class PorKilo extends Page
                 }
 
                 if ($this->montoPago > 0) {
-                    $ticket->pagos()->create([
+                    $pago = $ticket->pagos()->create([
                         'metodo_pago' => $this->metodoPago,
                         'monto' => $this->montoPago,
                         'user_id' => auth()->id(),
@@ -353,6 +377,10 @@ class PorKilo extends Page
                         'cancelado' => false,
                         'tipo_movimiento' => 'venta',
                     ]);
+
+                    $pago->forceFill([
+                        'cuenta_id' => $cuenta->id,
+                    ])->save();
 
                     \App\Models\Punto::create([
                         'user_id' => $this->clienteSeleccionadoId,
@@ -365,15 +393,18 @@ class PorKilo extends Page
 
                     $ticket->refresh();
 
-                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->sum('monto'))) <= 0) {
+                    if (($ticket->saldo ?? ($ticket->total - $ticket->pagos()->where('cancelado', false)->sum('monto'))) <= 0) {
                         $ticket->update([
                             'status_id' => $statusPagadoId,
                         ]);
                     }
                 }
 
+                $this->recalcularCuenta($cuenta);
+
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
+                    ->body("Asignado a la cuenta {$cuenta->numero}")
                     ->success()
                     ->send();
             });
@@ -391,9 +422,11 @@ class PorKilo extends Page
                 'clientePanelAbierto',
                 'kilos',
                 'tipoLavado',
+                'crearCuentaNueva',
             ]);
 
             $this->tipoLavado = 'basico';
+            $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
             $this->modalCobroAbierto = false;
@@ -411,21 +444,103 @@ class PorKilo extends Page
         }
     }
 
-    public function getHeading(): string
+    protected function obtenerOCrearCuenta(): Cuenta
     {
-        if (! $this->sucursalId) {
-            return 'Sin sucursal';
+        if (! $this->crearCuentaNueva) {
+            $cuenta = Cuenta::query()
+                ->where('cliente_id', $this->clienteSeleccionadoId)
+                ->where('sucursal_id', $this->sucursalId)
+                ->whereIn('estatus', ['abierta', 'parcial'])
+                ->whereDate('abierta_en', now()->toDateString())
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            if ($cuenta) {
+                return $cuenta;
+            }
         }
 
-        $sucursal = Sucursal::find($this->sucursalId);
+        $cuenta = new Cuenta();
 
-        return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        $cuenta->forceFill([
+            'cliente_id' => $this->clienteSeleccionadoId,
+            'sucursal_id' => $this->sucursalId,
+            'user_id' => auth()->id(),
+            'numero' => null,
+            'total' => 0,
+            'total_pagado' => 0,
+            'saldo' => 0,
+            'estatus' => 'abierta',
+            'abierta_en' => now(),
+            'cerrada_en' => null,
+            'notas' => null,
+        ])->save();
+
+        $cuenta->forceFill([
+            'numero' => $this->generarNumeroCuenta($cuenta),
+        ])->save();
+
+        return $cuenta;
     }
+
+    protected function generarNumeroCuenta(Cuenta $cuenta): string
+    {
+        return 'C-' . str_pad((string) $cuenta->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    protected function recalcularCuenta(Cuenta $cuenta): void
+    {
+        $ticketIds = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->pluck('id');
+
+        $total = Ticket::query()
+            ->where('cuenta_id', $cuenta->id)
+            ->sum('total');
+
+        $totalPagado = DB::table('ticket_pagos')
+            ->whereIn('ticket_id', $ticketIds)
+            ->where('cancelado', false)
+            ->sum('monto');
+
+        $saldo = max((float) $total - (float) $totalPagado, 0);
+
+        $estatus = 'abierta';
+
+        if ($saldo <= 0 && $total > 0) {
+            $estatus = 'pagada';
+        } elseif ($totalPagado > 0 && $saldo > 0) {
+            $estatus = 'parcial';
+        }
+
+        $cuenta->forceFill([
+            'total' => $total,
+            'total_pagado' => $totalPagado,
+            'saldo' => $saldo,
+            'estatus' => $estatus,
+            'cerrada_en' => $estatus === 'pagada' ? now() : null,
+        ])->save();
+    }
+
+public function getHeading(): string
+{
+    return '';
+}
+
+public function getTitle(): string
+{
+    if (! $this->sucursalId) {
+        return 'Sin sucursal';
+    }
+
+    $sucursal = Sucursal::find($this->sucursalId);
+
+    return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+}
 
     public static function canAccess(): bool
     {
-        // Para probar rápido usamos el mismo permiso actual.
-        // Luego, si quieres, lo cambiamos a View:PorKilo
         return auth()->user()?->can('View:PorKilo');
     }
 
