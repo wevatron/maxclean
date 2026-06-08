@@ -21,7 +21,7 @@ class PorEncargo extends Page
 
     protected string $view = 'filament.admin.pages.por-encargo';
 
-    protected static ?string $navigationLabel = 'Por pieza';
+    protected static ?string $navigationLabel = 'F2 Por pieza';
     protected static ?int $navigationSort = 1;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingBag;
@@ -571,13 +571,7 @@ public function getHeading(): string
 
 public function getTitle(): string
 {
-    if (! $this->sucursalId) {
-        return 'Sin sucursal';
-    }
-
-    $sucursal = Sucursal::find($this->sucursalId);
-
-    return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+    return '';
 }
 
     public static function canAccess(): bool

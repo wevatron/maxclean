@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.5rem')
             ->brandName(' ') // vacío si no quieres texto
             ->globalSearch(false)
-->topNavigation()
+            ->topNavigation(fn (): bool => auth()->check() && auth()->user()?->hasRole('empleado'))
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')

@@ -23,6 +23,11 @@ class CuentasTable
                     ->latest('id');
             })
             ->columns([
+                TextColumn::make('cliente.name')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('cuenta_card')
                     ->label('Cuentas')
                     ->state(fn (Cuenta $record): HtmlString => self::renderCuentaCard($record))
@@ -140,7 +145,7 @@ class CuentasTable
             <div style="font-size:20px;font-weight:800;color:#111827;line-height:1.1;">
                 Cuenta {$numero}
             </div>
-            <div style="font-size:13px;color:#6b7280;margin-top:4px;">
+            <div style="font-size:16px;color:#0f172a;margin-top:6px;font-weight:800;line-height:1.2;">
                 {$cliente}
             </div>
         </div>

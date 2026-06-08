@@ -22,6 +22,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema as DBSchema;
+use UnitEnum;
 
 class CuentaResource extends Resource
 {
@@ -31,7 +32,8 @@ class CuentaResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Cuentas';
 
-    protected static ?string $navigationLabel = 'Cuentas';
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión';
+    protected static ?string $navigationLabel = 'F7 Cuentas';
 
     protected static ?int $navigationSort = 5;
 

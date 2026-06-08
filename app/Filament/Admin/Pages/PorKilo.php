@@ -18,7 +18,7 @@ class PorKilo extends Page
 {
     protected string $view = 'filament.admin.pages.por-kilo';
 
-    protected static ?string $navigationLabel = 'Por kilo';
+    protected static ?string $navigationLabel = 'F3 Por kilo';
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
@@ -530,13 +530,7 @@ public function getHeading(): string
 
 public function getTitle(): string
 {
-    if (! $this->sucursalId) {
-        return 'Sin sucursal';
-    }
-
-    $sucursal = Sucursal::find($this->sucursalId);
-
-    return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+    return '';
 }
 
     public static function canAccess(): bool

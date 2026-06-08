@@ -14,16 +14,47 @@
             {{ $mensajeAcceso }}
         </div>
     @else
-        @php
-            $sucursal = \App\Models\Sucursal::find($this->sucursalId);
-        @endphp
-
-        <div class="por-kilo-heading">
-            <p>
-                POR KILO - Sucursal: {{ $sucursal?->nombre ?? 'Sin nombre' }}
-            </p>
-        </div>
-        <div style="display:flex; height:80vh; width:100%; background:#2b2b2b;">
+        <div style="position:relative; display:flex; height:80vh; width:100%; background:#2b2b2b;">
+            <div
+                style="
+                    position:absolute;
+                    bottom:6px;
+                    left:16px;
+                    z-index:20;
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    padding:12px 16px;
+                    border-radius:999px;
+                    background:rgba(15, 23, 42, 0.92);
+                    border:1px solid rgba(148, 163, 184, 0.18);
+                    box-shadow:0 12px 30px rgba(0,0,0,.22);
+                    backdrop-filter:blur(10px);
+                    color:white;
+                    pointer-events:none;
+                ">
+                <div
+                    style="
+                        width:34px;
+                        height:34px;
+                        border-radius:999px;
+                        display:grid;
+                        place-items:center;
+                        background:linear-gradient(135deg, #3b82f6, #60a5fa);
+                        box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+                    ">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px; height:18px;">
+                        <path d="M12 3.5v17" stroke="white" stroke-width="1.75" stroke-linecap="round"/>
+                        <path d="M6 8.5h12" stroke="white" stroke-width="1.75" stroke-linecap="round"/>
+                        <path d="M7.5 8.5 4.5 13a3 3 0 0 0 6 0l-3-4.5Zm9 0-3 4.5a3 3 0 0 0 6 0l-3-4.5Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+                        <path d="M9 8.5 12 5l3 3.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div style="display:flex; flex-direction:column; line-height:1;">
+                    <span style="font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#93c5fd;">Modo</span>
+                    <span style="font-size:15px; font-weight:700;">Por kilo</span>
+                </div>
+            </div>
 
             <!-- IZQUIERDA -->
             <div style="width:70%; padding:40px; overflow:auto; box-sizing:border-box;">

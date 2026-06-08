@@ -18,15 +18,17 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class ClienteResource extends Resource
 {
     protected static ?string $model = User::class;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     protected static ?string $recordTitleAttribute = 'Clientes';
-    protected static ?string $navigationLabel = 'Clientes';
+    protected static ?string $navigationLabel = 'F6 Clientes';
     protected static ?string $pluralLabel = 'Clientes';
     protected static ?int $navigationSort = 5;
 

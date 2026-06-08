@@ -16,15 +16,17 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use UnitEnum;
 
 class TicketResource extends Resource
 {
     protected static ?string $model = Ticket::class;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
     protected static ?string $recordTitleAttribute = 'Ticket';
-    protected static ?string $navigationLabel = 'Tickets en proceso';
+    protected static ?string $navigationLabel = 'F8 Tickets en proceso';
     protected static ?int $navigationSort = 7;
 
     public static function form(Schema $schema): Schema

@@ -14,16 +14,45 @@
             {{ $mensajeAcceso }}
         </div>
     @else
-        @php
-            $sucursal = \App\Models\Sucursal::find($this->sucursalId);
-        @endphp
-
-        <div class="por-kilo-heading">
-            <p>
-                POR PIEZA - Sucursal: {{ $sucursal?->nombre ?? 'Sin nombre' }}
-            </p>
-        </div>
-        <div style="display:flex; height:80vh; width:100%; background:#2b2b2b;">
+        <div style="position:relative; display:flex; height:80vh; width:100%; background:#2b2b2b;">
+            <div
+                style="
+                    position:absolute;
+                    bottom:6px;
+                    left:16px;
+                    z-index:20;
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    padding:12px 16px;
+                    border-radius:999px;
+                    background:rgba(15, 23, 42, 0.92);
+                    border:1px solid rgba(148, 163, 184, 0.18);
+                    box-shadow:0 12px 30px rgba(0,0,0,.22);
+                    backdrop-filter:blur(10px);
+                    color:white;
+                    pointer-events:none;
+                ">
+                <div
+                    style="
+                        width:34px;
+                        height:34px;
+                        border-radius:999px;
+                        display:grid;
+                        place-items:center;
+                        background:linear-gradient(135deg, #3b82f6, #60a5fa);
+                        box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+                    ">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:18px; height:18px;">
+                        <path d="M8.5 4.75 12 7.5l3.5-2.75L19 7.5l-2 4.25v8.5H7V11.75L5 7.5l3.5-2.75Z" stroke="white" stroke-width="1.75" stroke-linejoin="round"/>
+                        <path d="M12 7.5v13.25" stroke="white" stroke-width="1.75" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div style="display:flex; flex-direction:column; line-height:1;">
+                    <span style="font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#93c5fd;">Modo</span>
+                    <span style="font-size:15px; font-weight:700;">Por encargo</span>
+                </div>
+            </div>
 
             <!-- IZQUIERDA -->
             <div style="width:70%; padding:40px; overflow:auto; box-sizing:border-box;">

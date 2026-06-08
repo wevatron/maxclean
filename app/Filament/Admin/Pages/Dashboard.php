@@ -11,7 +11,7 @@ class Dashboard extends Page
     protected string $view = 'filament.admin.pages.dashboard';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::HomeModern;
 
-    protected static ?string $navigationLabel = 'Menu principal';
+    protected static ?string $navigationLabel = 'F1 Menu principal';
     protected static ?int $navigationSort = -100;
 
     public function getHeading(): string

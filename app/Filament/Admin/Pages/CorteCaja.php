@@ -14,13 +14,16 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
+use UnitEnum;
 
 class CorteCaja extends Page
 {
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
 
     protected string $view = 'filament.admin.pages.corte-caja';
 
+    protected static ?string $navigationLabel = 'F5 Corte Caja';
     protected static ?int $navigationSort = 4;
 
     public $fecha;

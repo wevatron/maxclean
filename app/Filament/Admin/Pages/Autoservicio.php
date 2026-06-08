@@ -19,7 +19,7 @@ class Autoservicio extends Page
 {
     protected string $view = 'filament.admin.pages.autoservicio';
 
-    protected static ?string $navigationLabel = 'Autoservicio';
+    protected static ?string $navigationLabel = 'F4 Autoservicio';
 
     protected static ?int $navigationSort = 3;
 
@@ -496,13 +496,7 @@ public function getHeading(): string
 
     public function getTitle(): string
     {
-        if (! $this->sucursalId) {
-            return 'Sin sucursal';
-        }
-
-        $sucursal = Sucursal::find($this->sucursalId);
-
-        return 'POR KILO - Sucursal: ' . ($sucursal?->nombre ?? 'Sin nombre');
+        return '';
     }
 
     public static function canAccess(): bool

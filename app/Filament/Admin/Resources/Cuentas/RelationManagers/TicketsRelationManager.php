@@ -2,7 +2,9 @@
 
 namespace App\Filament\Admin\Resources\Cuentas\RelationManagers;
 
+use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\Ticket;
+use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -80,7 +82,15 @@ class TicketsRelationManager extends RelationManager
             ])
             ->defaultSort('id', 'desc')
             ->headerActions([])
-            ->recordActions([])
+            ->recordActions([
+                Action::make('verTicket')
+                    ->label('Ver ticket')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->url(fn (Ticket $record): string => TicketResource::getUrl('view', [
+                        'record' => $record,
+                    ])),
+            ])
             ->toolbarActions([]);
     }
 }

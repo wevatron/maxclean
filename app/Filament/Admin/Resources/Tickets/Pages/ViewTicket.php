@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Tickets\Pages;
 
+use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\Prenda;
 use App\Models\Servicio;
@@ -39,8 +40,14 @@ class ViewTicket extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-
-        
+            Action::make('irACuenta')
+                ->label('Ver cuenta')
+                ->icon('heroicon-o-banknotes')
+                ->color('gray')
+                ->visible(fn (): bool => (bool) $this->record->cuenta_id && (bool) $this->record->cuenta)
+                ->url(fn (): string => CuentaResource::getUrl('edit', [
+                    'record' => $this->record->cuenta,
+                ])),
         ];
     }
 

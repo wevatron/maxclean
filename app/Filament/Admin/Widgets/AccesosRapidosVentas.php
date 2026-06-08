@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Widgets;
 use App\Filament\Admin\Pages\Autoservicio;
 use App\Filament\Admin\Pages\PorEncargo;
 use App\Filament\Admin\Pages\PorKilo;
+use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use Filament\Widgets\Widget;
 
 class AccesosRapidosVentas extends Widget
@@ -56,10 +57,10 @@ class AccesosRapidosVentas extends Widget
                 'color' => '#f59e0b',
             ],
             [
-                'titulo' => 'Corte de caja',
-                'descripcion' => 'Ver ingresos del día.',
-                'icono' => '💰',
-                'url' => \App\Filament\Admin\Pages\CorteCaja::getUrl(),
+                'titulo' => 'Cuentas',
+                'descripcion' => 'Gestionar cuentas abiertas y saldos.',
+                'icono' => '🧾',
+                'url' => CuentaResource::getUrl(),
                 'color' => '#ef4444',
             ],
         ];
