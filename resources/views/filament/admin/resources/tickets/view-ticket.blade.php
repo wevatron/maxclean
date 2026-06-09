@@ -931,6 +931,119 @@
                         </div>
                     @endforelse
                 </div>
+
+                @if ($record->productos->isNotEmpty())
+                    <div style="margin-top:28px;">
+                        <h3 style="font-weight:700; margin-bottom:15px; color:#ffffff;">
+                            Productos
+                        </h3>
+
+                        <div class="desktop-items ticket-table-wrap">
+                            <table class="ticket-table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio unitario</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @forelse ($record->productos as $producto)
+                                        @php
+                                            $cantidad = (int) ($producto->pivot->cantidad ?? 1);
+                                            $precioUnitario =
+                                                (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
+                                            $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
+                                        @endphp
+
+                                        <tr>
+                                            <td>
+                                                <div style="font-weight:600;">
+                                                    {{ $producto->nombre ?? 'Sin producto' }}
+                                                </div>
+
+                                                @if (!empty($producto->descripcion))
+                                                    <div class="explicacion-texto">
+                                                        {{ $producto->descripcion }}
+                                                    </div>
+                                                @endif
+                                            </td>
+
+                                            <td>{{ $cantidad }}</td>
+
+                                            <td>${{ number_format($precioUnitario, 2) }}</td>
+
+                                            <td style="font-weight:600;">
+                                                ${{ number_format($subtotal, 2) }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" style="color:#9fb3c8;">
+                                                No hay productos registrados.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mobile-items">
+                            @forelse ($record->productos as $producto)
+                                @php
+                                    $cantidad = (int) ($producto->pivot->cantidad ?? 1);
+                                    $precioUnitario =
+                                        (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
+                                    $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
+                                @endphp
+
+                                <div class="mobile-item-card">
+                                    <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
+                                        {{ $producto->nombre ?? 'Sin producto' }}
+                                    </div>
+
+                                    @if (!empty($producto->descripcion))
+                                        <div class="explicacion-texto" style="margin-bottom:12px;">
+                                            {{ $producto->descripcion }}
+                                        </div>
+                                    @endif
+
+                                    <div class="mobile-item-row">
+                                        <div>
+                                            <div class="mobile-item-label">Cantidad</div>
+                                            <div>{{ $cantidad }}</div>
+                                        </div>
+
+                                        <div style="text-align:right;">
+                                            <div class="mobile-item-label">Precio unitario</div>
+                                            <div>${{ number_format($precioUnitario, 2) }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top:10px;">
+                                        <div class="mobile-item-label">Subtotal</div>
+                                        <div style="font-size:18px; font-weight:800;">
+                                            ${{ number_format($subtotal, 2) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div
+                                    style="
+                                        color:#9fb3c8;
+                                        background:#163252;
+                                        border:1px solid #2c5d94;
+                                        padding:14px;
+                                        border-radius:12px;
+                                    ">
+                                    No hay productos registrados.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 

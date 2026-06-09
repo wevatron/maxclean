@@ -59,7 +59,7 @@
             <!-- IZQUIERDA -->
             <div style="width:70%; padding:40px; overflow:auto; box-sizing:border-box;">
 
-                <input type="text" wire:model.live="search" placeholder="Buscar servicio..."
+                <input type="text" wire:model.live="search" placeholder="Buscar producto o servicio..."
                     style="
                         width:100%;
                         padding:16px;
@@ -72,35 +72,96 @@
                     " />
 
                 @if ($clienteSeleccionadoId)
-                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
-                        @foreach ($servicios as $servicio)
-                            <div wire:click="agregarServicio({{ $servicio->id }})"
-                                style="
-                                    padding:20px;
-                                    border-radius:18px;
-                                    background:#3a3a3a;
-                                    cursor:pointer;
-                                    border:1px solid #4a4a4a;
-                                    color:white;
-                                    transition:.2s ease;
-                                ">
-                                <div style="font-weight:600; font-size:18px;">
-                                    {{ $servicio->nombre }}
-                                </div>
-
-                                <div style="font-weight:600; font-size:11px; color:#05b302;">
-                                    Servicio / ciclo
-                                </div>
-
-                                <div style="font-weight:600; font-size:8px; color:#b7b7b7;">
-                                    {{ $servicio->descripcion }}
-                                </div>
-
-                                <div style="margin-top:10px; font-size:20px; font-weight:700; color:#0ea5e9;">
-                                    ${{ number_format($servicio->precio_base, 2) }}
-                                </div>
+                    <div style="display:flex; flex-direction:column; gap:24px;">
+                        <div>
+                            <div style="font-size:18px; font-weight:700; color:white; margin-bottom:12px;">
+                                Servicios
                             </div>
-                        @endforeach
+
+                            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
+                                @forelse ($servicios as $servicio)
+                                    <div wire:click="agregarServicio({{ $servicio->id }})"
+                                        style="
+                                            padding:20px;
+                                            border-radius:18px;
+                                            background:#3a3a3a;
+                                            cursor:pointer;
+                                            border:1px solid #4a4a4a;
+                                            color:white;
+                                            transition:.2s ease;
+                                        ">
+                                        <div style="display:inline-flex; margin-bottom:10px; padding:4px 10px; border-radius:999px; background:#1e40af; color:white; font-size:11px; font-weight:700;">
+                                            Servicio
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:18px;">
+                                            {{ $servicio->nombre }}
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:11px; color:#05b302;">
+                                            Servicio / ciclo
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:8px; color:#b7b7b7;">
+                                            {{ $servicio->descripcion }}
+                                        </div>
+
+                                        <div style="margin-top:10px; font-size:20px; font-weight:700; color:#0ea5e9;">
+                                            ${{ number_format($servicio->precio_base, 2) }}
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div style="grid-column:1 / -1; padding:18px; border-radius:14px; background:#313131; color:#9ca3af;">
+                                        No hay servicios disponibles con esa búsqueda.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <div>
+                            <div style="font-size:18px; font-weight:700; color:white; margin-bottom:12px;">
+                                Productos
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
+                                @forelse ($productos as $producto)
+                                    <div wire:click="agregarProducto({{ $producto->id }})"
+                                        style="
+                                            padding:20px;
+                                            border-radius:18px;
+                                            background:#3a3a3a;
+                                            cursor:pointer;
+                                            border:1px solid #4a4a4a;
+                                            color:white;
+                                            transition:.2s ease;
+                                        ">
+                                        <div style="display:inline-flex; margin-bottom:10px; padding:4px 10px; border-radius:999px; background:#7c2d12; color:white; font-size:11px; font-weight:700;">
+                                            Producto
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:18px;">
+                                            {{ $producto->nombre }}
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:11px; color:#f59e0b;">
+                                            Existencia: {{ $producto->existencia }}
+                                        </div>
+
+                                        <div style="font-weight:600; font-size:8px; color:#b7b7b7;">
+                                            {{ $producto->descripcion }}
+                                        </div>
+
+                                        <div style="margin-top:10px; font-size:20px; font-weight:700; color:#0ea5e9;">
+                                            ${{ number_format($producto->precio_base, 2) }}
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div style="grid-column:1 / -1; padding:18px; border-radius:14px; background:#313131; color:#9ca3af;">
+                                        No hay productos disponibles con esa búsqueda.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
                     </div>
                 @else
                     <div
@@ -118,7 +179,7 @@
                             text-align:center;
                             padding:30px;
                         ">
-                        Selecciona un cliente para mostrar los servicios
+                        Selecciona un cliente para mostrar los servicios y productos
                     </div>
                 @endif
             </div>
@@ -307,10 +368,10 @@
                         border:1px solid #1f2937;
                     ">
                     <div style="font-size:16px; font-weight:700; color:white;">
-                        Renta de máquinas
+                        Catálogo de autoservicio
                     </div>
                     <div style="font-size:13px; color:#9ca3af; margin-top:4px;">
-                        Agrega ciclos de lavado, secado u otros servicios.
+                        Agrega servicios y productos disponibles para la venta.
                     </div>
                 </div>
 
@@ -332,6 +393,9 @@
                                 </div>
 
                                 <div style="font-size:14px; color:#9ca3af;">
+                                    <span style="display:inline-block; margin-right:6px; padding:2px 8px; border-radius:999px; background:{{ ($item['tipo'] ?? 'servicio') === 'producto' ? '#7c2d12' : '#1e40af' }}; color:white; font-size:11px; font-weight:700;">
+                                        {{ ($item['tipo'] ?? 'servicio') === 'producto' ? 'Producto' : 'Servicio' }}
+                                    </span>
                                     x{{ $item['cantidad'] }} · ${{ number_format($item['precio_unitario'], 2) }} c/u
                                 </div>
                             </div>
@@ -362,7 +426,7 @@
                                 color:#9ca3af;
                                 text-align:center;
                             ">
-                            Aún no has agregado servicios al ticket.
+                            Aún no has agregado conceptos al ticket.
                         </div>
                     @endforelse
                 </div>

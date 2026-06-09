@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\Catalogos\Resources\Servicios\Tables;
+namespace App\Filament\Clusters\Catalogos\Resources\Productos\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -11,14 +11,14 @@ use Filament\Tables\Filters\SelectFilter;
 use App\Models\Sucursal;
 use Filament\Tables\Table;
 
-class ServiciosTable
+class ProductosTable
 {
     public static function configure(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('nombre')
-                    ->label('Servicio')
+                    ->label('Producto')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
@@ -29,23 +29,24 @@ class ServiciosTable
                     ->badge()
                     ->color('gray'),
 
-                TextColumn::make('descripcion')
-                    ->label('Descripción')
-                    ->limit(50)
-                    ->color('gray'),
-
                 TextColumn::make('precio_base')
-                    ->label('Precio base')
+                    ->label('Precio')
                     ->money('MXN')
                     ->sortable()
                     ->weight('bold'),
+
+                TextColumn::make('existencia')
+                    ->label('Existencia')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn ($state) => (int) $state > 0 ? 'success' : 'danger'),
 
                 IconColumn::make('activo')
                     ->label('Activo')
                     ->boolean(),
 
-                TextColumn::make('created_at')
-                    ->label('Creado')
+                TextColumn::make('updated_at')
+                    ->label('Actualizado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -63,8 +64,7 @@ class ServiciosTable
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
-                EditAction::make()
-                    ->label('Editar'),
+                EditAction::make()->label('Editar'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

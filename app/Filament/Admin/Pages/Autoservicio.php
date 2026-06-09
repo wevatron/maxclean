@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Pages;
 use App\Models\Cuenta;
 use App\Models\Descuento;
 use App\Models\Punto;
+use App\Models\Producto;
 use App\Models\Servicio;
 use App\Models\Sucursal;
 use App\Models\Ticket;
@@ -35,6 +36,7 @@ class Autoservicio extends Page
     public $total = 0;
     public $search = '';
     public $servicios = [];
+    public $productos = [];
 
     public $montoPago = 0;
     public $montoRecibido = 0;
@@ -84,10 +86,23 @@ class Autoservicio extends Page
     {
         $this->servicios = Servicio::query()
             ->where('activo', true)
+            ->where('sucursal_id', $this->sucursalId)
             ->where(function ($query) {
                 $query->where('nombre', 'like', "%{$this->search}%")
                     ->orWhere('descripcion', 'like', "%{$this->search}%");
             })
+            ->limit(12)
+            ->get();
+
+        $this->productos = Producto::query()
+            ->where('activo', true)
+            ->where('sucursal_id', $this->sucursalId)
+            ->where('existencia', '>', 0)
+            ->where(function ($query) {
+                $query->where('nombre', 'like', "%{$this->search}%")
+                    ->orWhere('descripcion', 'like', "%{$this->search}%");
+            })
+            ->orderByDesc('existencia')
             ->limit(12)
             ->get();
     }
@@ -148,14 +163,81 @@ class Autoservicio extends Page
 
     public function agregarServicio($id)
     {
-        $servicio = Servicio::where('activo', true)->find($id);
+        $this->agregarItem('servicio', (int) $id);
+    }
+
+    public function agregarProducto($id)
+    {
+        $this->agregarItem('producto', (int) $id);
+    }
+
+    public function agregarItem(string $tipo, int $id)
+    {
+        if ($tipo === 'producto') {
+            $producto = Producto::where('activo', true)
+                ->where('sucursal_id', $this->sucursalId)
+                ->where('existencia', '>', 0)
+                ->find($id);
+
+            if (! $producto) {
+                Notification::make()
+                    ->title('Producto no disponible')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+
+            $cantidadActual = collect($this->items)
+                ->where('tipo', 'producto')
+                ->where('item_id', $id)
+                ->sum('cantidad');
+
+            if ($cantidadActual >= (int) $producto->existencia) {
+                Notification::make()
+                    ->title('Sin existencia suficiente')
+                    ->body("Solo hay {$producto->existencia} unidades disponibles.")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+
+            foreach ($this->items as $index => $item) {
+                if (($item['tipo'] ?? null) === 'producto' && $item['item_id'] == $id) {
+                    $this->items[$index]['cantidad']++;
+                    $this->items[$index]['subtotal'] = $this->items[$index]['cantidad'] * $this->items[$index]['precio_unitario'];
+                    $this->calcularTotal();
+
+                    return;
+                }
+            }
+
+            $this->items[] = [
+                'tipo' => 'producto',
+                'item_id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'descripcion' => $producto->descripcion,
+                'cantidad' => 1,
+                'precio_unitario' => (float) $producto->precio_base,
+                'subtotal' => (float) $producto->precio_base,
+            ];
+
+            $this->calcularTotal();
+
+            return;
+        }
+
+        $servicio = Servicio::where('activo', true)
+            ->where('sucursal_id', $this->sucursalId)
+            ->find($id);
 
         if (! $servicio) {
             return;
         }
 
         foreach ($this->items as $index => $item) {
-            if ($item['servicio_id'] == $id) {
+            if (($item['tipo'] ?? 'servicio') === 'servicio' && $item['item_id'] == $id) {
                 $this->items[$index]['cantidad']++;
                 $this->items[$index]['subtotal'] = $this->items[$index]['cantidad'] * $this->items[$index]['precio_unitario'];
                 $this->calcularTotal();
@@ -165,7 +247,8 @@ class Autoservicio extends Page
         }
 
         $this->items[] = [
-            'servicio_id' => $servicio->id,
+            'tipo' => 'servicio',
+            'item_id' => $servicio->id,
             'nombre' => $servicio->nombre,
             'descripcion' => $servicio->descripcion,
             'cantidad' => 1,
@@ -362,9 +445,37 @@ class Autoservicio extends Page
                 ])->save();
 
                 foreach ($this->items as $item) {
-                    $ticket->servicios()->attach($item['servicio_id'], [
+                    if (($item['tipo'] ?? 'servicio') === 'producto') {
+                        $producto = Producto::query()
+                            ->where('activo', true)
+                            ->where('sucursal_id', $this->sucursalId)
+                            ->whereKey($item['item_id'])
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (! $producto) {
+                            throw new \Exception("El producto {$item['nombre']} ya no está disponible.");
+                        }
+
+                        if ((int) $producto->existencia < (int) $item['cantidad']) {
+                            throw new \Exception("No hay existencia suficiente para {$producto->nombre}.");
+                        }
+
+                        $producto->decrement('existencia', (int) $item['cantidad']);
+
+                        $ticket->productos()->attach($producto->id, [
+                            'cantidad' => $item['cantidad'],
+                            'precio_unitario' => $item['precio_unitario'],
+                            'subtotal' => $item['subtotal'],
+                        ]);
+
+                        continue;
+                    }
+
+                    $ticket->servicios()->attach($item['item_id'], [
                         'cantidad' => $item['cantidad'],
                         'precio_unitario' => $item['precio_unitario'],
+                        'subtotal' => $item['subtotal'],
                     ]);
                 }
 
@@ -417,6 +528,7 @@ class Autoservicio extends Page
                 'items',
                 'total',
                 'search',
+                'productos',
                 'montoPago',
                 'montoRecibido',
                 'montoCambio',

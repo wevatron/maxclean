@@ -2,12 +2,12 @@
 
 namespace App\Filament\Clusters\Catalogos\Resources\Servicios;
 
-use App\Filament\Clusters\Catalogos\CatalogosCluster;
 use App\Filament\Clusters\Catalogos\Resources\Servicios\Pages\CreateServicio;
 use App\Filament\Clusters\Catalogos\Resources\Servicios\Pages\EditServicio;
 use App\Filament\Clusters\Catalogos\Resources\Servicios\Pages\ListServicios;
 use App\Filament\Clusters\Catalogos\Resources\Servicios\Schemas\ServicioForm;
 use App\Filament\Clusters\Catalogos\Resources\Servicios\Tables\ServiciosTable;
+use App\Filament\Clusters\ProductosServicios\ProductosServiciosCluster;
 use App\Models\Servicio;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,7 +21,7 @@ class ServicioResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
-    protected static ?string $cluster = CatalogosCluster::class;
+    protected static ?string $cluster = ProductosServiciosCluster::class;
 
     protected static ?string $modelLabel = 'Servicio';
 

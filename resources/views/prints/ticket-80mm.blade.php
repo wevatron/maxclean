@@ -242,21 +242,26 @@
         <div class="divider"></div>
 
         @if ($esAutoservicio)
-            <div class="bold mb-2">SERVICIOS</div>
+            <div class="bold mb-2">SERVICIOS Y PRODUCTOS</div>
 
-            @forelse ($ticket->servicios as $servicio)
+            @forelse ($ticket->conceptos_venta as $concepto)
                 @php
-                    $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
-                    $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? ($servicio->precio_base ?? 0));
-                    $subtotal = (float) ($servicio->pivot->subtotal ?? $cantidad * $precioUnitario);
+                    $cantidad = (int) ($concepto->pivot->cantidad ?? 1);
+                    $precioUnitario = (float) ($concepto->pivot->precio_unitario ?? ($concepto->precio_base ?? 0));
+                    $subtotal = (float) ($concepto->pivot->subtotal ?? $cantidad * $precioUnitario);
+                    $tipoVenta = ($concepto->tipo_venta ?? 'servicio') === 'producto' ? 'Producto' : 'Servicio';
                 @endphp
 
                 <div class="item">
-                    <div class="item-name">{{ $servicio->nombre ?? 'Sin servicio' }}</div>
+                    <div class="item-name">{{ $concepto->nombre ?? 'Sin concepto' }}</div>
 
-                    @if (!empty($servicio->descripcion))
-                        <div class="tiny">{{ $servicio->descripcion }}</div>
+                    @if (!empty($concepto->descripcion))
+                        <div class="tiny">{{ $concepto->descripcion }}</div>
                     @endif
+
+                    <div class="tiny" style="font-weight:700; text-transform:uppercase; letter-spacing:.08em;">
+                        {{ $tipoVenta }}
+                    </div>
 
                     <div class="row small">
                         <div class="left">
@@ -268,7 +273,7 @@
                     </div>
                 </div>
             @empty
-                <div class="small">Sin servicios registrados.</div>
+                <div class="small">Sin conceptos registrados.</div>
             @endforelse
         @else
             <div class="bold mb-2">PRENDAS</div>

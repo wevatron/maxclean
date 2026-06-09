@@ -215,5 +215,44 @@ NIVEL 3 · EQUIPOS DISPONIBLES
 </x-filament::section>
 @endif
 
+@if (auth()->user()?->hasRole('super_admin'))
+    <x-filament::section heading="Mantenimiento temporal" style="margin-top:2rem;">
+        <div
+            style="
+                display:flex;
+                flex-direction:column;
+                gap:12px;
+                padding:18px;
+                border-radius:16px;
+                background:#fff7ed;
+                border:1px solid #fed7aa;
+            ">
+            <div style="color:#9a3412;font-weight:700;font-size:16px;">
+                Zona de pruebas
+            </div>
+            <div style="color:#9a3412;font-size:14px;line-height:1.5;">
+                Este botón vacía cuentas, tickets, pagos y cierres de caja. No borra puntos, usuarios ni catálogos.
+            </div>
+
+            <button
+                type="button"
+                wire:click="vaciarDatosPruebas"
+                wire:confirm="Esto eliminará cuentas, tickets, pagos y cierres de caja. Los puntos se conservarán. ¿Continuar?"
+                style="
+                    align-self:flex-start;
+                    padding:12px 16px;
+                    border:none;
+                    border-radius:12px;
+                    background:#dc2626;
+                    color:white;
+                    font-weight:700;
+                    cursor:pointer;
+                ">
+                Vaciar datos de pruebas
+            </button>
+        </div>
+    </x-filament::section>
+@endif
+
 
 </x-filament::page>

@@ -88,6 +88,7 @@ class ViewTicket extends ViewRecord
         }
 
         return Servicio::query()
+            ->where('sucursal_id', $this->record->sucursal_id)
             ->where(function ($query) use ($texto) {
                 $query->where('nombre', 'like', "%{$texto}%")
                     ->orWhere('descripcion', 'like', "%{$texto}%");
@@ -203,7 +204,9 @@ class ViewTicket extends ViewRecord
 
     public function seleccionarServicioTicket(int $servicioId): void
     {
-        $servicio = Servicio::query()->find($servicioId);
+        $servicio = Servicio::query()
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->find($servicioId);
 
         if (! $servicio) {
             Notification::make()
@@ -332,7 +335,9 @@ class ViewTicket extends ViewRecord
             return;
         }
 
-        $servicio = Servicio::query()->find($this->servicioSeleccionadoId);
+        $servicio = Servicio::query()
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->find($this->servicioSeleccionadoId);
 
         if (! $servicio) {
             Notification::make()

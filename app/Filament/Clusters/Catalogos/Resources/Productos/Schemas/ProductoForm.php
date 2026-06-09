@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Filament\Clusters\Catalogos\Resources\Servicios\Schemas;
+namespace App\Filament\Clusters\Catalogos\Resources\Productos\Schemas;
 
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class ServicioForm
+class ProductoForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Información del servicio')
-                    ->description('Configura los servicios disponibles en la venta general o en autoservicio.')
+                Section::make('Información del producto')
+                    ->description('Configura los productos que requieren inventario y pueden venderse en autoservicio.')
                     ->schema([
                         Grid::make(2)
                             ->schema([
@@ -41,7 +41,7 @@ class ServicioForm
 
                                 TextInput::make('nombre')
                                     ->label('Nombre')
-                                    ->placeholder('Ej. Ciclo de lavado')
+                                    ->placeholder('Ej. Suavizante')
                                     ->required()
                                     ->maxLength(255),
 
@@ -52,18 +52,25 @@ class ServicioForm
                                     ->required()
                                     ->minValue(0)
                                     ->step(0.01),
+
+                                TextInput::make('existencia')
+                                    ->label('Existencia')
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(0)
+                                    ->default(0),
+
+                                Toggle::make('activo')
+                                    ->label('Activo')
+                                    ->default(true)
+                                    ->helperText('Si está desactivado, no aparecerá en autoservicio.'),
                             ]),
 
                         Textarea::make('descripcion')
                             ->label('Descripción')
-                            ->placeholder('Ej. Renta de lavadora por un ciclo.')
+                            ->placeholder('Ej. Presentación de 1 litro.')
                             ->rows(3)
                             ->columnSpanFull(),
-
-                        Toggle::make('activo')
-                            ->label('Activo')
-                            ->default(true)
-                            ->helperText('Si está desactivado, no aparecerá en autoservicio.'),
                     ])->columnSpanFull(),
             ]);
     }

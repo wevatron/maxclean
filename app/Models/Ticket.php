@@ -63,6 +63,17 @@ class Ticket extends Model
             ->withTimestamps();
     }
 
+    public function productos()
+    {
+        return $this->belongsToMany(Producto::class, 'ticket_productos')
+            ->withPivot([
+                'cantidad',
+                'precio_unitario',
+                'subtotal',
+            ])
+            ->withTimestamps();
+    }
+
     public function procesos()
     {
         return $this->hasMany(TicketProceso::class);
@@ -190,5 +201,29 @@ class Ticket extends Model
             'ropa_interior' => 'Ropa interior',
             default => 'Sin especificar',
         };
+    }
+
+    public function getConceptosVentaAttribute()
+    {
+        $servicios = $this->relationLoaded('servicios')
+            ? $this->servicios
+            : $this->servicios()->get();
+
+        $productos = $this->relationLoaded('productos')
+            ? $this->productos
+            : $this->productos()->get();
+
+        return $servicios
+            ->map(function ($item) {
+                $item->tipo_venta = 'servicio';
+
+                return $item;
+            })
+            ->concat($productos->map(function ($item) {
+                $item->tipo_venta = 'producto';
+
+                return $item;
+            }))
+            ->values();
     }
 }

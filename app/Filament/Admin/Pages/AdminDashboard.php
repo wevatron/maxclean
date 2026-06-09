@@ -2,9 +2,11 @@
 
 namespace App\Filament\Admin\Pages;
 
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 
 class AdminDashboard extends Page
 {
@@ -42,6 +44,45 @@ class AdminDashboard extends Page
     {
         $this->sucursalId = null;
         $this->camino = null;
+    }
+
+    public function vaciarDatosPruebas(): void
+    {
+        abort_unless(auth()->user()?->hasRole('super_admin'), 403);
+
+        try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            foreach ([
+                'ticket_pagos',
+                'cuenta_pagos',
+                'ticket_productos',
+                'ticket_servicios',
+                'ticket_items',
+                'ticket_procesos',
+                'tickets',
+                'cuentas',
+                'cortes_caja',
+            ] as $table) {
+                DB::table($table)->truncate();
+            }
+
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            Notification::make()
+                ->title('Datos de pruebas vaciados')
+                ->body('Se limpiaron cuentas, tickets, pagos y cierres de caja. Los puntos se conservaron.')
+                ->success()
+                ->send();
+        } catch (\Throwable $e) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            Notification::make()
+                ->title('No se pudo vaciar la información')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     public static function canAccess(): bool
