@@ -149,17 +149,12 @@
             default => 'ENCARGO',
         };
 
-        $tipoLavadoTexto = match ($ticket->tipo_lavado_kilo ?? null) {
-            'basico' => 'Básico',
-            'premium' => 'Premium',
-            'extra_lavado' => 'Extra lavado',
-            'expres' => 'Expres',
-            'ropa_interior' => 'Ropa interior',
-            default => 'Sin especificar',
-        };
+        $tipoLavadoTexto = $ticket->tipo_lavado_kilo_label;
 
         $tasaIva = 0.16;
         $totalFiscal = (float) $ticket->total;
+        $descuentoAplicado = max((float) ($ticket->descuento_aplicado ?? 0), 0);
+        $totalAntesDescuento = $descuentoAplicado > 0 ? $totalFiscal + $descuentoAplicado : $totalFiscal;
         $subtotalFiscal = round($totalFiscal / (1 + $tasaIva), 2);
         $ivaFiscal = round($totalFiscal - $subtotalFiscal, 2);
 
@@ -198,6 +193,12 @@
         <div class="center small">
             {{ $ticket->created_at?->format('d/m/Y H:i') }}
         </div>
+
+        @if ($descuentoAplicado > 0)
+            <div class="center tiny mt-1" style="color:#0f766e;">
+                Descuento aplicado: -${{ number_format($descuentoAplicado, 2) }}
+            </div>
+        @endif
 
         <div class="divider"></div>
 
@@ -341,6 +342,13 @@
             <div class="right bold">${{ number_format($totalFiscal, 2) }}</div>
         </div>
 
+        @if ($descuentoAplicado > 0)
+            <div class="row tiny">
+                <div class="left">Total antes de descuento</div>
+                <div class="right">${{ number_format($totalAntesDescuento, 2) }}</div>
+            </div>
+        @endif
+
         <div class="row">
             <div class="left bold">PAGADO</div>
             <div class="right bold">${{ number_format((float) $ticket->pagado, 2) }}</div>
@@ -387,6 +395,10 @@
         @endif --}}
 
         <div class="divider"></div>
+
+        <div class="tiny center" style="margin-top:4px; line-height:1.45;">
+            En caso de requerir factura, solicítela el día de su pago; de lo contrario, se integrará a la factura global del día.
+        </div>
 
         <div class="center small">
             Gracias por su preferencia

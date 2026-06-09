@@ -120,6 +120,26 @@
             font-size: 10px;
         }
 
+        .account-notes {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed #000;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .account-notes-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .fiscal-note {
+            margin-top: 10px;
+            font-size: 9px;
+            line-height: 1.45;
+            text-align: center;
+        }
+
         .no-print {
             margin: 10px;
             display: flex;
@@ -229,6 +249,7 @@
                         <th>Ticket</th>
                         <th>Tipo</th>
                         <th class="right">Total</th>
+                        <th class="right">Desc.</th>
                         <th class="right">Pagado</th>
                         <th class="right">Debe</th>
                     </tr>
@@ -238,6 +259,7 @@
                         @php
                             $pagadoTicket = $ticket->pagos->where('cancelado', false)->sum('monto');
                             $saldoTicket = max((float) $ticket->total - (float) $pagadoTicket, 0);
+                            $descuentoTicket = (float) ($ticket->descuento_aplicado ?? 0);
 
                             $tipoTicket = match ($ticket->tipo) {
                                 'encargo' => 'Pieza',
@@ -252,6 +274,7 @@
                             <td>#{{ $ticket->numero }}</td>
                             <td>{{ $tipoTicket }}</td>
                             <td class="right">${{ number_format($ticket->total, 2) }}</td>
+                            <td class="right">${{ number_format($descuentoTicket, 2) }}</td>
                             <td class="right">${{ number_format($pagadoTicket, 2) }}</td>
                             <td class="right">${{ number_format($saldoTicket, 2) }}</td>
                         </tr>
@@ -291,7 +314,24 @@
             @endif
         </div>
 
+        @if (filled($cuenta->notas))
+            <div class="account-notes">
+                <div class="account-notes-title">Notas de la cuenta</div>
+                <div>{!! nl2br(e($cuenta->notas)) !!}</div>
+            </div>
+        @endif
+
         <div class="total-box">
+            <div class="row">
+                <div class="left bold">Total antes de descuento</div>
+                <div class="right bold">${{ number_format($totalAntesDescuento, 2) }}</div>
+            </div>
+
+            <div class="row">
+                <div class="left bold">Descuentos aplicados</div>
+                <div class="right bold">-${{ number_format($totalDescuentos, 2) }}</div>
+            </div>
+
             <div class="row">
                 <div class="left bold">Total tickets</div>
                 <div class="right bold">${{ number_format($totalTickets, 2) }}</div>
@@ -317,6 +357,10 @@
                 SALDO PENDIENTE: ${{ number_format($saldo, 2) }}
             </div>
         @endif
+
+        <div class="fiscal-note">
+            En caso de requerir factura, solicítela el día de su pago; de lo contrario, se integrará a la factura global del día.
+        </div>
 
         <div class="footer">
             Gracias por su preferencia.

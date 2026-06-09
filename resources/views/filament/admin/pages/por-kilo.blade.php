@@ -352,13 +352,41 @@
                 </div>
 
                 <div style="border-top:1px solid #374151; padding-top:30px; margin-top:20px;">
+                    @if ($this->descuentoGlobalActivo)
+                        <div
+                            style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:8px;
+                                padding:8px 12px;
+                                margin-bottom:12px;
+                                border-radius:999px;
+                                background:rgba(34,197,94,.14);
+                                color:#86efac;
+                                border:1px solid rgba(34,197,94,.35);
+                                font-size:13px;
+                                font-weight:800;
+                            ">
+                            Descuento global activo
+                            @if ($this->etiquetaDescuento)
+                                <span style="opacity:.9;">{{ $this->etiquetaDescuento }}</span>
+                            @endif
+                        </div>
+                    @endif
+
                     <div style="font-size:14px; color:#9ca3af; margin-bottom:4px;">
                         Total estimado actual
                     </div>
 
                     <div style="font-size:42px; font-weight:800; color:#22c55e;">
-                        ${{ number_format($total, 2) }}
+                        ${{ number_format($this->totalConDescuento, 2) }}
                     </div>
+
+                    @if ($this->montoDescuento > 0)
+                        <div style="font-size:12px; color:#9ca3af; margin-top:6px;">
+                            Antes: ${{ number_format($total, 2) }} · Descuento: -${{ number_format($this->montoDescuento, 2) }}
+                        </div>
+                    @endif
 
                     <div style="font-size:12px; color:#9ca3af; margin-top:6px;">
                         Se define al cobrar con kilos y tipo de lavado
@@ -413,7 +441,9 @@
             <div
                 style="
                     width:100%;
-                    max-width:520px;
+                    max-width:820px;
+                    max-height:calc(100vh - 32px);
+                    overflow:auto;
                     background:white;
                     border-radius:18px;
                     padding:24px;
@@ -423,166 +453,223 @@
                     Registrar pago por kilo
                 </div>
 
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                        Kilos
-                    </label>
+                <div style="display:grid; grid-template-columns:1.05fr .95fr; gap:18px;">
+                    <div>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                                Kilos
+                            </label>
 
-                    <input type="number" step="0.01" min="0" wire:model.live="kilos"
-                        style="
-                            width:100%;
-                            padding:12px;
-                            border-radius:10px;
-                            border:1px solid #d1d5db;
-                            color:#111827;
-                        " />
-                </div>
+                            <input type="number" step="0.01" min="0" wire:model.live="kilos"
+                                style="
+                                    width:100%;
+                                    padding:12px;
+                                    border-radius:10px;
+                                    border:1px solid #d1d5db;
+                                    color:#111827;
+                                " />
+                        </div>
 
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                        Tipo de lavado
-                    </label>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                                Tipo de lavado
+                            </label>
 
-                    <select wire:model.live="tipoLavado"
-                        style="
-                            width:100%;
-                            padding:12px;
-                            border-radius:10px;
-                            border:1px solid #d1d5db;
-                            color:#111827;
-                        ">
-                        <option value="basico">Básico ($22/kg)</option>
-                        <option value="premium">Premium ($28/kg)</option>
-                        <option value="extra_lavado">Extra lavado ($32/kg)</option>
-                        <option value="expres">Expres ($30/kg)</option>
-                        <option value="ropa_interior">Ropa interior ($25/kg)</option>
-                    </select>
-                </div>
+                            <select wire:model.live="tipoLavado"
+                                style="
+                                    width:100%;
+                                    padding:12px;
+                                    border-radius:10px;
+                                    border:1px solid #d1d5db;
+                                    color:#111827;
+                                ">
+                                @foreach ($this->tiposLavado as $tipoLavado)
+                                    <option value="{{ $tipoLavado->clave }}">
+                                        {{ $tipoLavado->nombre }} (${{ number_format((float) $tipoLavado->precio, 2) }}/kg)
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                <div
-                    style="
-                        margin-bottom:18px;
-                        padding:14px;
-                        border-radius:12px;
-                        background:#f3f4f6;
-                        color:#111827;
-                    ">
-                    <div style="font-size:14px; color:#6b7280;">Precio actual por kilo</div>
-                    <div style="font-size:20px; font-weight:700;">
-                        ${{ number_format($this->getPrecioPorKilo(), 2) }}
-                    </div>
-
-                    <div style="font-size:14px; color:#6b7280; margin-top:10px;">Total</div>
-                    <div style="font-size:24px; font-weight:800; color:#16a34a;">
-                        ${{ number_format($total, 2) }}
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-                    <button type="button" wire:click="montoCero"
-                        style="
-                            padding:10px 14px;
-                            border:none;
-                            border-radius:10px;
-                            background:#6b7280;
-                            color:white;
-                            cursor:pointer;
-                        ">
-                        0%
-                    </button>
-
-                    <button type="button" wire:click="montoMitad"
-                        style="
-                            padding:10px 14px;
-                            border:none;
-                            border-radius:10px;
-                            background:#f59e0b;
-                            color:white;
-                            cursor:pointer;
-                        ">
-                        50%
-                    </button>
-
-                    <button type="button" wire:click="montoTotal"
-                        style="
-                            padding:10px 14px;
-                            border:none;
-                            border-radius:10px;
-                            background:#22c55e;
-                            color:white;
-                            cursor:pointer;
-                        ">
-                        100%
-                    </button>
-                </div>
-
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                        Monto a pagar / anticipo
-                    </label>
-
-                    <input type="number" step="0.01" min="0" wire:model.live="montoTemporal"
-                        style="
-                            width:100%;
-                            padding:12px;
-                            border-radius:10px;
-                            border:1px solid #d1d5db;
-                            color:#111827;
-                        " />
-                </div>
-
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                        Método de pago
-                    </label>
-
-                    <select wire:model="metodoPago"
-                        style="
-                            width:100%;
-                            padding:12px;
-                            border-radius:10px;
-                            border:1px solid #d1d5db;
-                            color:#111827;
-                        ">
-                        <option value="efectivo">Efectivo</option>
-                        <option value="transferencia">Transferencia</option>
-                        <option value="tarjeta">Tarjeta</option>
-                    </select>
-                </div>
-
-                <div style="margin-bottom:20px;">
-                    <label
-                        style="
-                            display:flex;
-                            gap:12px;
-                            align-items:flex-start;
-                            padding:14px;
-                            border-radius:12px;
-                            border:1px solid #d1d5db;
-                            background:#f9fafb;
-                            cursor:pointer;
-                        ">
-                        <input type="checkbox" wire:model.live="crearCuentaNueva"
+                        <div
                             style="
-                                width:20px;
-                                height:20px;
-                                margin-top:2px;
-                                accent-color:#2563eb;
-                                cursor:pointer;
+                                margin-bottom:18px;
+                                padding:14px;
+                                border-radius:12px;
+                                background:#f3f4f6;
+                                color:#111827;
                             ">
+                            @if ($this->descuentoGlobalActivo)
+                                <div
+                                    style="
+                                        display:inline-flex;
+                                        align-items:center;
+                                        gap:8px;
+                                        margin-bottom:12px;
+                                        padding:6px 10px;
+                                        border-radius:999px;
+                                        background:#ecfdf5;
+                                        color:#166534;
+                                        border:1px solid #bbf7d0;
+                                        font-size:13px;
+                                        font-weight:800;
+                                    ">
+                                    Descuento global activo
+                                    @if ($this->etiquetaDescuento)
+                                        <span>{{ $this->etiquetaDescuento }}</span>
+                                    @endif
+                                </div>
+                            @endif
 
-                        <div>
-                            <div style="font-weight:700; color:#111827;">
-                                Crear cuenta nueva
+                            <div style="font-size:14px; color:#6b7280;">Precio actual por kilo</div>
+                            <div style="font-size:20px; font-weight:700;">
+                                ${{ number_format($this->getPrecioPorKilo(), 2) }}
                             </div>
-                            <div style="font-size:13px; color:#6b7280; margin-top:4px;">
-                                Si no marcas esta opción, el ticket se agregará a la cuenta abierta de hoy del cliente.
+
+                            <div style="font-size:14px; color:#6b7280; margin-top:10px;">Total a pagar</div>
+                            <div style="font-size:24px; font-weight:800; color:#16a34a;">
+                                ${{ number_format($this->totalConDescuento, 2) }}
+                            </div>
+
+                            @if ($this->montoDescuento > 0)
+                                <div style="font-size:12px; color:#6b7280; margin-top:6px;">
+                                    Antes: ${{ number_format($total, 2) }} · Descuento: -${{ number_format($this->montoDescuento, 2) }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                            <button type="button" wire:click="montoCero"
+                                style="
+                                    padding:10px 14px;
+                                    border:none;
+                                    border-radius:10px;
+                                    background:#6b7280;
+                                    color:white;
+                                    cursor:pointer;
+                                ">
+                                0%
+                            </button>
+
+                            <button type="button" wire:click="montoMitad"
+                                style="
+                                    padding:10px 14px;
+                                    border:none;
+                                    border-radius:10px;
+                                    background:#f59e0b;
+                                    color:white;
+                                    cursor:pointer;
+                                ">
+                                50%
+                            </button>
+
+                            <button type="button" wire:click="montoTotal"
+                                style="
+                                    padding:10px 14px;
+                                    border:none;
+                                    border-radius:10px;
+                                    background:#22c55e;
+                                    color:white;
+                                    cursor:pointer;
+                                ">
+                                100%
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; margin-bottom:16px;">
+                            <div>
+                                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                                    Monto
+                                </label>
+
+                                <input type="number" step="0.01" min="0" wire:model.live.debounce.1000ms="montoTemporal"
+                                    style="
+                                        width:100%;
+                                        padding:12px;
+                                        border-radius:10px;
+                                        border:1px solid #d1d5db;
+                                        color:#111827;
+                                    " />
+                            </div>
+
+                            <div>
+                                <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                                    Con cuánto paga
+                                </label>
+
+                                <input type="number" step="0.01" min="0" wire:model.live.debounce.1000ms="montoRecibido"
+                                    style="
+                                        width:100%;
+                                        padding:12px;
+                                        border-radius:10px;
+                                        border:1px solid #d1d5db;
+                                        color:#111827;
+                                    " />
                             </div>
                         </div>
-                    </label>
+
+                        <div style="margin-bottom:16px;">
+                            <div style="font-size:14px; font-weight:700; color:#166534;">
+                                Cambio a devolver: ${{ number_format((float) ($montoCambio ?? 0), 2) }}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                                Método de pago
+                            </label>
+
+                            <select wire:model="metodoPago"
+                                style="
+                                    width:100%;
+                                    padding:12px;
+                                    border-radius:10px;
+                                    border:1px solid #d1d5db;
+                                    color:#111827;
+                                ">
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom:20px;">
+                            <label
+                                style="
+                                    display:flex;
+                                    gap:12px;
+                                    align-items:flex-start;
+                                    padding:14px;
+                                    border-radius:12px;
+                                    border:1px solid #d1d5db;
+                                    background:#f9fafb;
+                                    cursor:pointer;
+                                ">
+                                <input type="checkbox" wire:model.live="crearCuentaNueva"
+                                    style="
+                                        width:20px;
+                                        height:20px;
+                                        margin-top:2px;
+                                        accent-color:#2563eb;
+                                        cursor:pointer;
+                                    ">
+
+                                <div>
+                                    <div style="font-weight:700; color:#111827;">
+                                        Crear cuenta nueva
+                                    </div>
+                                    <div style="font-size:13px; color:#6b7280; margin-top:4px;">
+                                        Si no marcas esta opción, el ticket se agregará a la cuenta abierta de hoy del cliente.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px;">
                     <button type="button" wire:click="cerrarModalCobro"
                         style="
                             padding:12px 16px;

@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Models\Cuenta;
+use App\Models\Descuento;
 use App\Models\Punto;
 use App\Models\Servicio;
 use App\Models\Sucursal;
@@ -13,7 +14,9 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as DBSchema;
 
 class Autoservicio extends Page
 {
@@ -34,6 +37,8 @@ class Autoservicio extends Page
     public $servicios = [];
 
     public $montoPago = 0;
+    public $montoRecibido = 0;
+    public $montoCambio = 0;
     public $metodoPago = 'efectivo';
 
     public $accesoValido = false;
@@ -67,6 +72,7 @@ class Autoservicio extends Page
         }
 
         $this->clientePanelAbierto = true;
+        $this->calcularTotal();
     }
 
     public function updatedSearch()
@@ -189,7 +195,7 @@ class Autoservicio extends Page
 
     public function calcularTotal()
     {
-        $this->total = collect($this->items)->sum('subtotal');
+        $this->total = round((float) collect($this->items)->sum('subtotal'), 2);
     }
 
     public function abrirModalCobro()
@@ -216,6 +222,8 @@ class Autoservicio extends Page
 
         $this->montoTemporal = 0;
         $this->montoPago = 0;
+        $this->montoRecibido = 0;
+        $this->montoCambio = 0;
         $this->crearCuentaNueva = false;
         $this->modalCobroAbierto = true;
     }
@@ -233,13 +241,25 @@ class Autoservicio extends Page
     public function montoMitad()
     {
         $this->calcularTotal();
-        $this->montoTemporal = round($this->total / 2, 2);
+        $this->montoTemporal = round($this->totalConDescuento / 2, 2);
     }
 
     public function montoTotal()
     {
         $this->calcularTotal();
-        $this->montoTemporal = $this->total;
+        $this->montoTemporal = $this->totalConDescuento;
+    }
+
+    public function updatedMontoTemporal(): void
+    {
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoCambio = max((float) ($this->montoRecibido ?: 0) - $this->montoTemporal, 0);
+    }
+
+    public function updatedMontoRecibido(): void
+    {
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $this->montoCambio = max($this->montoRecibido - (float) ($this->montoTemporal ?: 0), 0);
     }
 
     public function confirmarCobro()
@@ -247,6 +267,8 @@ class Autoservicio extends Page
         $this->calcularTotal();
 
         $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $totalAPagar = (float) $this->totalConDescuento;
 
         if ($this->montoTemporal < 0) {
             Notification::make()
@@ -257,7 +279,7 @@ class Autoservicio extends Page
             return;
         }
 
-        if ($this->montoTemporal > $this->total) {
+        if ($this->montoTemporal > $totalAPagar) {
             Notification::make()
                 ->title('El anticipo no puede ser mayor al total')
                 ->danger()
@@ -267,6 +289,7 @@ class Autoservicio extends Page
         }
 
         $this->montoPago = $this->montoTemporal;
+        $this->montoCambio = max($this->montoRecibido - $this->montoPago, 0);
         $this->modalCobroAbierto = false;
 
         $this->crearTicket();
@@ -305,6 +328,7 @@ class Autoservicio extends Page
                 $cuenta = $this->obtenerOCrearCuenta();
 
                 $numero = Ticket::generarNumero($this->sucursalId);
+                $descuentoAplicado = round(max((float) $this->total - (float) $this->totalConDescuento, 0), 2);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
                 $statusPagadoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
@@ -324,8 +348,14 @@ class Autoservicio extends Page
                     'status_id' => $statusRecibidoId,
                     'numero' => $numero,
                     'tipo' => 'autoservicio',
-                    'total' => $this->total,
+                    'total' => $this->totalConDescuento,
                 ]);
+
+                if (DBSchema::hasColumn('tickets', 'descuento_aplicado')) {
+                    $ticket->forceFill([
+                        'descuento_aplicado' => $descuentoAplicado,
+                    ])->save();
+                }
 
                 $ticket->forceFill([
                     'cuenta_id' => $cuenta->id,
@@ -374,7 +404,11 @@ class Autoservicio extends Page
 
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
-                    ->body("Asignado a la cuenta {$cuenta->numero}")
+                    ->body(
+                        "Asignado a la cuenta {$cuenta->numero}. " .
+                        "Se guardó el pago con éxito. " .
+                        'Es $' . number_format((float) $this->montoCambio, 2) . ' de cambio.'
+                    )
                     ->success()
                     ->send();
             });
@@ -384,6 +418,8 @@ class Autoservicio extends Page
                 'total',
                 'search',
                 'montoPago',
+                'montoRecibido',
+                'montoCambio',
                 'montoTemporal',
                 'clienteSearch',
                 'clientesEncontrados',
@@ -396,6 +432,8 @@ class Autoservicio extends Page
             $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
+            $this->montoRecibido = 0;
+            $this->montoCambio = 0;
             $this->modalCobroAbierto = false;
 
             $this->cargarServicios();
@@ -489,7 +527,63 @@ class Autoservicio extends Page
         ])->save();
     }
 
-public function getHeading(): string
+    public function getDescuentoGlobalActivoProperty(): ?Descuento
+    {
+        return Descuento::query()
+            ->where('nivel', 'global')
+            ->where('activo', true)
+            ->whereDate('inicio', '<=', Carbon::today())
+            ->whereDate('fin', '>=', Carbon::today())
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function getMontoDescuentoProperty(): float
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return 0.0;
+        }
+
+        $total = (float) $this->total;
+
+        if (! is_null($descuento->porcentaje)) {
+            return round($total * ((float) $descuento->porcentaje / 100), 2);
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return round((float) $descuento->fijo, 2);
+        }
+
+        return 0.0;
+    }
+
+    public function getTotalConDescuentoProperty(): float
+    {
+        return max((float) $this->total - (float) $this->montoDescuento, 0);
+    }
+
+    public function getEtiquetaDescuentoProperty(): ?string
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return null;
+        }
+
+        if (! is_null($descuento->porcentaje)) {
+            return number_format((float) $descuento->porcentaje, 2) . '%';
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return '$' . number_format((float) $descuento->fijo, 2);
+        }
+
+        return null;
+    }
+
+    public function getHeading(): string
     {
         return '';
     }

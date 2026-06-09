@@ -368,9 +368,37 @@
                 </div>
 
                 <div style="border-top:1px solid #374151; padding-top:30px; margin-top:20px;">
+                    @if ($this->descuentoGlobalActivo)
+                        <div
+                            style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:8px;
+                                padding:8px 12px;
+                                border-radius:999px;
+                                background:#f0fdf4;
+                                border:1px solid #bbf7d0;
+                                color:#166534;
+                                font-size:13px;
+                                font-weight:700;
+                                margin-bottom:10px;
+                            ">
+                            <span>Descuento global activo</span>
+                            @if ($this->etiquetaDescuento)
+                                <span>{{ $this->etiquetaDescuento }}</span>
+                            @endif
+                        </div>
+                    @endif
+
                     <div style="font-size:42px; font-weight:800; color:#22c55e;">
-                        ${{ number_format($total, 2) }}
+                        ${{ number_format($this->totalConDescuento, 2) }}
                     </div>
+
+                    @if ($this->montoDescuento > 0)
+                        <div style="font-size:13px; color:#9ca3af; margin-top:6px;">
+                            Antes: ${{ number_format($total, 2) }} · Descuento: -${{ number_format($this->montoDescuento, 2) }}
+                        </div>
+                    @endif
 
                     @if ($clienteSeleccionadoId)
                         <button type="button" wire:click="abrirModalCobro"
@@ -432,8 +460,35 @@
                 </div>
 
                 <div style="font-size:18px; margin-bottom:15px; color:#111827;">
-                    Total: <strong>${{ number_format($total, 2) }}</strong>
+                    Subtotal: <strong>${{ number_format($total, 2) }}</strong>
                 </div>
+
+                @if ($this->descuentoGlobalActivo)
+                    <div
+                        style="
+                            margin-bottom:16px;
+                            padding:14px 16px;
+                            border-radius:14px;
+                            background:#f0fdf4;
+                            border:1px solid #bbf7d0;
+                            color:#166534;
+                        ">
+                        <div style="font-weight:700;">
+                            Descuento global activo
+                            @if ($this->etiquetaDescuento)
+                                <span>· {{ $this->etiquetaDescuento }}</span>
+                            @endif
+                        </div>
+                        <div style="font-size:13px; margin-top:4px;">
+                            Total a pagar: <strong>${{ number_format($this->totalConDescuento, 2) }}</strong>
+                        </div>
+                        @if ($this->montoDescuento > 0)
+                            <div style="font-size:12px; margin-top:4px; color:#15803d;">
+                                Antes: ${{ number_format($total, 2) }} · Descuento: -${{ number_format($this->montoDescuento, 2) }}
+                            </div>
+                        @endif
+                    </div>
+                @endif
 
                 <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
                     <button type="button" wire:click="montoCero"
@@ -473,19 +528,42 @@
                     </button>
                 </div>
 
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
-                        Monto a pagar / anticipo
-                    </label>
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; margin-bottom:16px;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                            Monto
+                        </label>
 
-                    <input type="number" step="0.01" min="0" wire:model.live="montoTemporal"
-                        style="
-                            width:100%;
-                            padding:12px;
-                            border-radius:10px;
-                            border:1px solid #d1d5db;
-                            color:#111827;
-                        " />
+                        <input type="number" step="0.01" min="0" wire:model.live.debounce.1000ms="montoTemporal"
+                            style="
+                                width:100%;
+                                padding:12px;
+                                border-radius:10px;
+                                border:1px solid #d1d5db;
+                                color:#111827;
+                            " />
+                    </div>
+
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                            Con cuánto paga
+                        </label>
+
+                        <input type="number" step="0.01" min="0" wire:model.live.debounce.1000ms="montoRecibido"
+                            style="
+                                width:100%;
+                                padding:12px;
+                                border-radius:10px;
+                                border:1px solid #d1d5db;
+                                color:#111827;
+                            " />
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:14px; font-weight:700; color:#166534;">
+                        Cambio a devolver: ${{ number_format((float) ($montoCambio ?? 0), 2) }}
+                    </div>
                 </div>
 
                 <div style="margin-bottom:16px;">

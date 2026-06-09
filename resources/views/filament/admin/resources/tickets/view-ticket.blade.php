@@ -238,14 +238,7 @@
                 default => 'Encargo',
             };
 
-            $tipoLavadoTexto = match ($record->tipo_lavado_kilo ?? null) {
-                'basico' => 'Básico',
-                'premium' => 'Premium',
-                'extra_lavado' => 'Extra lavado',
-                'expres' => 'Expres',
-                'ropa_interior' => 'Ropa interior',
-                default => 'Sin especificar',
-            };
+            $tipoLavadoTexto = $record->tipo_lavado_kilo_label;
         @endphp
 
         <div class="ticket-header"

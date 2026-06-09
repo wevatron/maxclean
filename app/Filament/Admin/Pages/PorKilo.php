@@ -3,7 +3,9 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Models\Cuenta;
+use App\Models\Descuento;
 use App\Models\Prenda;
+use App\Models\TipoKilo;
 use App\Models\Sucursal;
 use App\Models\Ticket;
 use App\Models\TicketStatus;
@@ -12,7 +14,9 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as DBSchema;
 
 class PorKilo extends Page
 {
@@ -32,6 +36,8 @@ class PorKilo extends Page
     public $prendas = [];
 
     public $montoPago = 0;
+    public $montoRecibido = 0;
+    public $montoCambio = 0;
     public $metodoPago = 'efectivo';
 
     public $accesoValido = false;
@@ -67,6 +73,9 @@ class PorKilo extends Page
         }
 
         $this->clientePanelAbierto = true;
+        $this->tipoLavado = $this->tiposLavado->firstWhere('clave', $this->tipoLavado)?->clave
+            ?? $this->tiposLavado->first()?->clave
+            ?? 'basico';
         $this->calcularTotal();
     }
 
@@ -183,6 +192,12 @@ class PorKilo extends Page
 
     public function getPrecioPorKilo(): float
     {
+        $tipo = $this->tiposLavado->firstWhere('clave', $this->tipoLavado);
+
+        if ($tipo) {
+            return (float) $tipo->precio;
+        }
+
         return match ($this->tipoLavado) {
             'premium' => 28,
             'extra_lavado' => 32,
@@ -225,6 +240,8 @@ class PorKilo extends Page
 
         $this->montoTemporal = 0;
         $this->montoPago = 0;
+        $this->montoRecibido = 0;
+        $this->montoCambio = 0;
         $this->crearCuentaNueva = false;
         $this->modalCobroAbierto = true;
     }
@@ -242,13 +259,25 @@ class PorKilo extends Page
     public function montoMitad()
     {
         $this->calcularTotal();
-        $this->montoTemporal = round($this->total / 2, 2);
+        $this->montoTemporal = round($this->totalConDescuento / 2, 2);
     }
 
     public function montoTotal()
     {
         $this->calcularTotal();
-        $this->montoTemporal = $this->total;
+        $this->montoTemporal = $this->totalConDescuento;
+    }
+
+    public function updatedMontoTemporal(): void
+    {
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoCambio = max((float) ($this->montoRecibido ?: 0) - $this->montoTemporal, 0);
+    }
+
+    public function updatedMontoRecibido(): void
+    {
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $this->montoCambio = max($this->montoRecibido - (float) ($this->montoTemporal ?: 0), 0);
     }
 
     public function confirmarCobro()
@@ -256,6 +285,8 @@ class PorKilo extends Page
         $this->calcularTotal();
 
         $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $totalAPagar = (float) $this->totalConDescuento;
 
         if ((float) $this->kilos <= 0) {
             Notification::make()
@@ -275,7 +306,7 @@ class PorKilo extends Page
             return;
         }
 
-        if ($this->montoTemporal > $this->total) {
+        if ($this->montoTemporal > $totalAPagar) {
             Notification::make()
                 ->title('El anticipo no puede ser mayor al total')
                 ->danger()
@@ -285,6 +316,7 @@ class PorKilo extends Page
         }
 
         $this->montoPago = $this->montoTemporal;
+        $this->montoCambio = max($this->montoRecibido - $this->montoPago, 0);
         $this->modalCobroAbierto = false;
 
         $this->crearTicket();
@@ -323,6 +355,7 @@ class PorKilo extends Page
                 $cuenta = $this->obtenerOCrearCuenta();
 
                 $numero = Ticket::generarNumero($this->sucursalId);
+                $descuentoAplicado = round(max((float) $this->total - (float) $this->totalConDescuento, 0), 2);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
                 $statusPagadoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
@@ -335,20 +368,26 @@ class PorKilo extends Page
                     throw new \Exception('No existe el status "pagado" en ticket_statuses.');
                 }
 
-                $ticket = Ticket::create([
+                $ticketData = [
                     'sucursal_id' => $this->sucursalId,
                     'user_id' => auth()->id(),
                     'cliente_id' => $this->clienteSeleccionadoId,
                     'status_id' => $statusRecibidoId,
                     'numero' => $numero,
                     'tipo' => 'encargo_kilo',
-                    'total' => $this->total,
+                    'total' => $this->totalConDescuento,
 
                     'modo_por_kilo' => true,
                     'kilos' => (float) $this->kilos,
                     'tipo_lavado_kilo' => $this->tipoLavado,
                     'precio_kilo' => $this->getPrecioPorKilo(),
-                ]);
+                ];
+
+                if (DBSchema::hasColumn('tickets', 'descuento_aplicado')) {
+                    $ticketData['descuento_aplicado'] = $descuentoAplicado;
+                }
+
+                $ticket = Ticket::create($ticketData);
 
                 $ticket->forceFill([
                     'cuenta_id' => $cuenta->id,
@@ -404,7 +443,11 @@ class PorKilo extends Page
 
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
-                    ->body("Asignado a la cuenta {$cuenta->numero}")
+                    ->body(
+                        "Asignado a la cuenta {$cuenta->numero}. " .
+                        "Se guardó el pago con éxito. " .
+                        'Es $' . number_format((float) $this->montoCambio, 2) . ' de cambio.'
+                    )
                     ->success()
                     ->send();
             });
@@ -414,6 +457,8 @@ class PorKilo extends Page
                 'total',
                 'search',
                 'montoPago',
+                'montoRecibido',
+                'montoCambio',
                 'montoTemporal',
                 'clienteSearch',
                 'clientesEncontrados',
@@ -425,10 +470,12 @@ class PorKilo extends Page
                 'crearCuentaNueva',
             ]);
 
-            $this->tipoLavado = 'basico';
+            $this->tipoLavado = $this->tiposLavado->first()?->clave ?? 'basico';
             $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
+            $this->montoRecibido = 0;
+            $this->montoCambio = 0;
             $this->modalCobroAbierto = false;
 
             $this->calcularTotal();
@@ -521,6 +568,71 @@ class PorKilo extends Page
             'estatus' => $estatus,
             'cerrada_en' => $estatus === 'pagada' ? now() : null,
         ])->save();
+    }
+
+    public function getDescuentoGlobalActivoProperty(): ?Descuento
+    {
+        return Descuento::query()
+            ->where('nivel', 'global')
+            ->where('activo', true)
+            ->whereDate('inicio', '<=', Carbon::today())
+            ->whereDate('fin', '>=', Carbon::today())
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function getMontoDescuentoProperty(): float
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return 0.0;
+        }
+
+        $total = (float) $this->total;
+
+        if (! is_null($descuento->porcentaje)) {
+            return round($total * ((float) $descuento->porcentaje / 100), 2);
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return round((float) $descuento->fijo, 2);
+        }
+
+        return 0.0;
+    }
+
+    public function getTotalConDescuentoProperty(): float
+    {
+        return max((float) $this->total - (float) $this->montoDescuento, 0);
+    }
+
+    public function getEtiquetaDescuentoProperty(): ?string
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return null;
+        }
+
+        if (! is_null($descuento->porcentaje)) {
+            return number_format((float) $descuento->porcentaje, 2) . '%';
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return '$' . number_format((float) $descuento->fijo, 2);
+        }
+
+        return null;
+    }
+
+    public function getTiposLavadoProperty()
+    {
+        return TipoKilo::query()
+            ->where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get();
     }
 
 public function getHeading(): string

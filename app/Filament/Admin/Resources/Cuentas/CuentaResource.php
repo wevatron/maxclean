@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Cuentas\RelationManagers\TicketPagosRelationMan
 use App\Filament\Admin\Resources\Cuentas\RelationManagers\TicketsRelationManager;
 use App\Filament\Admin\Resources\Cuentas\Schemas\CuentaForm;
 use App\Filament\Admin\Resources\Cuentas\Tables\CuentasTable;
+use App\Models\Descuento;
 use App\Models\Cuenta;
 use App\Models\CuentaPago;
 use App\Models\Punto;
@@ -20,6 +21,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema as DBSchema;
 use UnitEnum;
@@ -96,7 +98,7 @@ class CuentaResource extends Resource
 
         $estatus = 'abierta';
 
-        if ($saldo <= 0 && $total > 0) {
+        if ($total > 0 && $saldo <= 0) {
             $estatus = 'pagada';
         } elseif ($totalPagado > 0 && $saldo > 0) {
             $estatus = 'parcial';
@@ -109,6 +111,67 @@ class CuentaResource extends Resource
             'estatus' => $estatus,
             'cerrada_en' => $estatus === 'pagada' ? now() : null,
         ])->save();
+    }
+
+    public static function descuentoGlobalActivo(): ?Descuento
+    {
+        return Descuento::query()
+            ->where('nivel', 'global')
+            ->where('activo', true)
+            ->whereDate('inicio', '<=', Carbon::today())
+            ->whereDate('fin', '>=', Carbon::today())
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public static function etiquetaDescuentoGlobal(): ?string
+    {
+        $descuento = self::descuentoGlobalActivo();
+
+        if (! $descuento) {
+            return null;
+        }
+
+        if (! is_null($descuento->porcentaje)) {
+            return number_format((float) $descuento->porcentaje, 2) . '%';
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return '$' . number_format((float) $descuento->fijo, 2);
+        }
+
+        return null;
+    }
+
+    public static function montoDescuentoGlobalSobreSaldo(Cuenta $cuenta): float
+    {
+        $descuento = self::descuentoGlobalActivo();
+
+        if (! $descuento) {
+            return 0.0;
+        }
+
+        $saldoBase = max((float) $cuenta->saldo, 0);
+
+        if (! is_null($descuento->porcentaje)) {
+            return round(min($saldoBase * ((float) $descuento->porcentaje / 100), $saldoBase), 2);
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return round(min((float) $descuento->fijo, $saldoBase), 2);
+        }
+
+        return 0.0;
+    }
+
+    public static function saldoConDescuento(Cuenta $cuenta): float
+    {
+        return max((float) $cuenta->saldo, 0);
+    }
+
+    public static function aplicarDescuentoGlobalSiCorresponde(Cuenta $cuenta): float
+    {
+        return 0.0;
     }
 
     public static function liquidarCuenta(Cuenta $cuenta, array $data): void
@@ -125,12 +188,13 @@ class CuentaResource extends Resource
                 }
 
                 self::recalcularCuenta($cuenta);
+                self::recalcularCuenta($cuenta);
 
                 $cuenta->refresh();
 
-                $saldoCuenta = round((float) $cuenta->saldo, 2);
+                $saldoCobro = round((float) $cuenta->saldo, 2);
 
-                if ($saldoCuenta <= 0) {
+                if ($saldoCobro <= 0) {
                     Notification::make()
                         ->title('La cuenta ya está liquidada')
                         ->warning()
@@ -145,7 +209,7 @@ class CuentaResource extends Resource
                     throw new \Exception('El monto a abonar debe ser mayor a 0.');
                 }
 
-                if ($montoDisponible > $saldoCuenta) {
+                if ($montoDisponible > $saldoCobro) {
                     throw new \Exception('El monto a abonar no puede ser mayor al saldo pendiente.');
                 }
 
@@ -161,9 +225,11 @@ class CuentaResource extends Resource
                     'metodo_pago' => $metodoPago,
                     'referencia' => $referencia,
                     'cancelado' => false,
-                    'notas' => $montoDisponible >= $saldoCuenta
-                        ? 'Liquidación completa de cuenta ' . $cuenta->numero
-                        : 'Abono parcial a cuenta ' . $cuenta->numero,
+                    'notas' => trim(
+                        ($montoDisponible >= $saldoCobro
+                            ? 'Liquidación completa de cuenta ' . $cuenta->numero
+                            : 'Abono parcial a cuenta ' . $cuenta->numero)
+                    ),
                 ]);
 
                 $restante = $montoDisponible;
@@ -244,10 +310,10 @@ class CuentaResource extends Resource
 
             $cuenta->refresh();
 
-            Notification::make()
-                ->title($cuenta->saldo <= 0 ? 'Cuenta liquidada correctamente' : 'Abono registrado correctamente')
-                ->success()
-                ->send();
+            $notification = Notification::make()
+                ->title($cuenta->estatus === 'pagada' ? 'Cuenta liquidada correctamente' : 'Abono registrado correctamente');
+
+            $notification->success()->send();
         } catch (\Throwable $e) {
             Notification::make()
                 ->title('Error al registrar abono')

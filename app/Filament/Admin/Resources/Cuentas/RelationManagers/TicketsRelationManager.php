@@ -59,6 +59,12 @@ class TicketsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => '$' . number_format((float) $state, 2))
                     ->sortable(),
 
+                TextColumn::make('descuento')
+                    ->label('Descuento')
+                    ->state(fn (Ticket $record): float => (float) ($record->descuento_aplicado ?? 0))
+                    ->formatStateUsing(fn ($state) => '$' . number_format((float) $state, 2))
+                    ->color('warning'),
+
                 TextColumn::make('pagado')
                     ->label('Pagado')
                     ->state(fn (Ticket $record) => $record->pagos()->where('cancelado', false)->sum('monto'))

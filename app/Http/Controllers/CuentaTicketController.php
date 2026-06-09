@@ -31,6 +31,8 @@ class CuentaTicketController extends Controller
         $tickets = $cuenta->tickets;
 
         $totalTickets = $tickets->sum('total');
+        $totalDescuentos = $tickets->sum(fn ($ticket) => (float) ($ticket->descuento_aplicado ?? 0));
+        $totalAntesDescuento = $totalTickets + $totalDescuentos;
 
         $totalPagado = TicketPago::query()
             ->where('cuenta_id', $cuenta->id)
@@ -60,6 +62,8 @@ class CuentaTicketController extends Controller
             'tickets' => $tickets,
             'pagosAplicados' => $pagosAplicados,
             'totalTickets' => $totalTickets,
+            'totalDescuentos' => $totalDescuentos,
+            'totalAntesDescuento' => $totalAntesDescuento,
             'totalPagado' => $totalPagado,
             'saldo' => $saldo,
             'qrContenido' => $qrContenido,

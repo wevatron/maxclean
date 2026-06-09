@@ -18,6 +18,7 @@ class Cuenta extends Model
         'total',
         'total_pagado',
         'saldo',
+        'descuento_aplicado',
         'estatus',
         'abierta_en',
         'cerrada_en',
@@ -28,6 +29,7 @@ class Cuenta extends Model
         'total' => 'decimal:2',
         'total_pagado' => 'decimal:2',
         'saldo' => 'decimal:2',
+        'descuento_aplicado' => 'decimal:2',
         'abierta_en' => 'datetime',
         'cerrada_en' => 'datetime',
     ];

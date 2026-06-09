@@ -16,10 +16,16 @@ class Ticket extends Model
         'numero',
         'tipo',
         'total',
+        'descuento_aplicado',
         'modo_por_kilo',
         'kilos',
         'tipo_lavado_kilo',
         'precio_kilo',
+    ];
+
+    protected $casts = [
+        'total' => 'decimal:2',
+        'descuento_aplicado' => 'decimal:2',
     ];
 
     public function sucursal()
@@ -158,5 +164,31 @@ class Ticket extends Model
             ->sum('monto');
 
         return max((float) $this->total - (float) $pagado, 0);
+    }
+
+    public function getTipoLavadoKiloLabelAttribute(): string
+    {
+        $tipoLavado = $this->tipo_lavado_kilo;
+
+        if (! $tipoLavado) {
+            return 'Sin especificar';
+        }
+
+        $catalogo = TipoKilo::query()
+            ->where('clave', $tipoLavado)
+            ->first();
+
+        if ($catalogo) {
+            return $catalogo->nombre;
+        }
+
+        return match ($tipoLavado) {
+            'basico' => 'Básico',
+            'premium' => 'Premium',
+            'extra_lavado' => 'Extra lavado',
+            'expres' => 'Expres',
+            'ropa_interior' => 'Ropa interior',
+            default => 'Sin especificar',
+        };
     }
 }

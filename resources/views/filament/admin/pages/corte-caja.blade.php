@@ -352,12 +352,7 @@
                                     };
                                 }
 
-                                $lavadoTexto = match ($pago->ticket?->tipo_lavado_kilo) {
-                                    'basico' => 'Básico',
-                                    'premium' => 'Premium',
-                                    'extra_lavado' => 'Extra lavado',
-                                    default => null,
-                                };
+                                $lavadoTexto = $pago->ticket?->tipo_lavado_kilo_label;
                             @endphp
 
                             <tr>

@@ -80,13 +80,14 @@ class CuentaForm
                     ])
                     ->columnSpanFull(),
 
-                /* Section::make('Notas internas')
+                Section::make('Notas internas')
                     ->schema([
                         Textarea::make('notas')
                             ->label('Notas')
                             ->rows(4)
                             ->columnSpanFull(),
-                    ]), */
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 }

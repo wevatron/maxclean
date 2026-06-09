@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Filament\Admin\Pages\Autoservicio;
 use App\Filament\Admin\Pages\CorteCaja;
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Admin\Pages\Escaner;
 use App\Filament\Admin\Pages\PorEncargo;
 use App\Filament\Admin\Pages\PorKilo;
 use App\Filament\Admin\Resources\Clientes\ClienteResource;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
                     'F6' => ClienteResource::getUrl(),
                     'F7' => \App\Filament\Admin\Resources\Cuentas\CuentaResource::getUrl(),
                     'F8' => \App\Filament\Admin\Resources\Tickets\TicketResource::getUrl(),
+                    'F9' => Escaner::getUrl(),
                 ];
 
                 $payload = json_encode($links, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

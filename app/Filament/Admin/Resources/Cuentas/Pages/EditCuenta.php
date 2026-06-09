@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\HtmlString;
 
 class EditCuenta extends EditRecord
 {
@@ -53,16 +54,17 @@ class EditCuenta extends EditRecord
                 ->visible(fn (): bool => (float) $this->record->saldo > 0 && in_array($this->record->estatus, ['abierta', 'parcial'], true))
                 ->requiresConfirmation()
                 ->modalHeading(fn () => 'Abonar a cuenta ' . $this->record->numero)
-                ->modalDescription(fn () => 'Puedes abonar una parcialidad o liquidar el saldo completo. El pago se repartirá entre los tickets pendientes.')
+                ->modalDescription('Puedes abonar una parcialidad o liquidar el saldo completo. El pago se repartirá entre los tickets pendientes.')
+                ->modalContent(fn () => $this->descuentoCuentaBadge())
                 ->form([
                     TextInput::make('monto')
                         ->label('Monto a abonar')
                         ->prefix('$')
                         ->numeric()
-                        ->minValue(0.01)
+                        ->minValue(fn () => (float) $this->record->saldo > 0 ? 0.01 : 0)
                         ->default(fn () => (float) $this->record->saldo)
                         ->required()
-                        ->helperText(fn () => 'Saldo pendiente: $' . number_format((float) $this->record->saldo, 2)),
+                        ->helperText(fn () => $this->helperSaldoCuenta()),
 
                     Select::make('metodo_pago')
                         ->label('Método de pago')
@@ -126,5 +128,40 @@ class EditCuenta extends EditRecord
                     ]);
                 }),
         ];
+    }
+
+    protected function descuentoCuentaBadge(): ?HtmlString
+    {
+        $descuentoGuardado = (float) ($this->record->descuento_aplicado ?? 0);
+
+        if ($descuentoGuardado > 0) {
+            return new HtmlString('
+                <div style="
+                    margin-bottom:16px;
+                    padding:12px 14px;
+                    border-radius:14px;
+                    border:1px solid #bfdbfe;
+                    background:#eff6ff;
+                    color:#1d4ed8;
+                    font-weight:700;
+                ">
+                    Descuento guardado: $' . number_format($descuentoGuardado, 2) . '
+                </div>
+            ');
+        }
+
+        return null;
+    }
+
+    protected function helperSaldoCuenta(): string
+    {
+        $saldo = (float) $this->record->saldo;
+        $descuento = (float) ($this->record->descuento_aplicado ?? 0);
+
+        if ($descuento > 0) {
+            return 'Saldo pendiente: $' . number_format($saldo, 2) . ' · Descuento guardado: $' . number_format($descuento, 2);
+        }
+
+        return 'Saldo pendiente: $' . number_format($saldo, 2);
     }
 }

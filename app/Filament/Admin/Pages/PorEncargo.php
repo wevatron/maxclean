@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Models\Descuento;
 use App\Models\Cuenta;
 use App\Models\Prenda;
 use App\Models\Servicio;
@@ -13,7 +14,9 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as DBSchema;
 
 class PorEncargo extends Page
 {
@@ -36,6 +39,8 @@ class PorEncargo extends Page
     public $prendas = [];
 
     public $montoPago = 0;
+    public $montoRecibido = 0;
+    public $montoCambio = 0;
     public $metodoPago = 'efectivo';
 
     public $accesoValido = false;
@@ -279,6 +284,8 @@ public function abrirModalCobro()
 
     $this->montoTemporal = 0;
     $this->montoPago = 0;
+    $this->montoRecibido = 0;
+    $this->montoCambio = 0;
     $this->crearCuentaNueva = false;
     $this->modalCobroAbierto = true;
 }
@@ -294,41 +301,44 @@ public function abrirModalCobro()
 
     public function montoMitad()
     {
-        $this->montoTemporal = round($this->total / 2, 2);
+        $this->montoTemporal = round($this->totalConDescuento / 2, 2);
     }
 
     public function montoTotal()
     {
-        $this->montoTemporal = $this->total;
+        $this->montoTemporal = $this->totalConDescuento;
     }
 
-public function confirmarCobro()
-{
-    $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+    public function confirmarCobro()
+    {
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $totalAPagar = (float) $this->totalConDescuento;
 
-    if ($this->montoTemporal < 0) {
-        Notification::make()
-            ->title('Monto inválido')
-            ->danger()
-            ->send();
+        if ($this->montoTemporal < 0) {
+            Notification::make()
+                ->title('Monto inválido')
+                ->danger()
+                ->send();
 
-        return;
+            return;
+        }
+
+        if ($this->montoTemporal > $totalAPagar) {
+            Notification::make()
+                ->title('El anticipo no puede ser mayor al total')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->montoPago = $this->montoTemporal;
+        $this->montoCambio = max($this->montoRecibido - $this->montoPago, 0);
+        $this->modalCobroAbierto = false;
+
+        $this->crearTicket();
     }
-
-    if ($this->montoTemporal > $this->total) {
-        Notification::make()
-            ->title('El anticipo no puede ser mayor al total')
-            ->danger()
-            ->send();
-
-        return;
-    }
-
-    $this->montoPago = $this->montoTemporal;
-    $this->modalCobroAbierto = false;
-
-    $this->crearTicket();
-}
 
     public function crearTicket()
     {
@@ -361,6 +371,7 @@ public function confirmarCobro()
                 $cuenta = $this->obtenerOCrearCuenta();
 
                 $numero = Ticket::generarNumero($this->sucursalId);
+                $descuentoAplicado = round(max((float) $this->total - (float) $this->totalConDescuento, 0), 2);
 
                 $statusRecibidoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['recibido'])->value('id');
                 $statusPagadoId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['pagado'])->value('id');
@@ -373,15 +384,21 @@ public function confirmarCobro()
                     throw new \Exception('No existe el status "pagado" en ticket_statuses.');
                 }
 
-                $ticket = Ticket::create([
+                $ticketData = [
                     'sucursal_id' => $this->sucursalId,
                     'user_id'     => auth()->id(),
                     'cliente_id'  => $this->clienteSeleccionadoId,
                     'status_id'   => $statusRecibidoId,
                     'numero'      => $numero,
                     'tipo'        => $this->modoExpress ? 'encargo_express' : 'encargo',
-                    'total'       => $this->total,
-                ]);
+                    'total'       => $this->totalConDescuento,
+                ];
+
+                if (DBSchema::hasColumn('tickets', 'descuento_aplicado')) {
+                    $ticketData['descuento_aplicado'] = $descuentoAplicado;
+                }
+
+                $ticket = Ticket::create($ticketData);
 
                 $ticket->forceFill([
                     'cuenta_id' => $cuenta->id,
@@ -447,7 +464,11 @@ public function confirmarCobro()
 
                 Notification::make()
                     ->title("Ticket #{$ticket->numero} creado")
-                    ->body("Asignado a la cuenta {$cuenta->numero}")
+                    ->body(
+                        "Asignado a la cuenta {$cuenta->numero}. " .
+                        "Se guardó el pago con éxito. " .
+                        'Es $' . number_format((float) $this->montoCambio, 2) . ' de cambio.'
+                    )
                     ->success()
                     ->send();
             });
@@ -457,6 +478,8 @@ public function confirmarCobro()
                 'total',
                 'search',
                 'montoPago',
+                'montoRecibido',
+                'montoCambio',
                 'montoTemporal',
                 'clienteSearch',
                 'clientesEncontrados',
@@ -471,6 +494,8 @@ public function confirmarCobro()
             $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
             $this->metodoPago = 'efectivo';
+            $this->montoRecibido = 0;
+            $this->montoCambio = 0;
             $this->modalCobroAbierto = false;
             $this->servicioSeleccionado = Servicio::where('activo', true)->first()?->id;
             $this->cargarPrendas();
@@ -564,15 +589,15 @@ public function confirmarCobro()
         ])->save();
     }
 
-public function getHeading(): string
-{
-    return '';
-}
+    public function getHeading(): string
+    {
+        return '';
+    }
 
-public function getTitle(): string
-{
-    return '';
-}
+    public function getTitle(): string
+    {
+        return '';
+    }
 
     public static function canAccess(): bool
     {
@@ -597,5 +622,73 @@ public function getTitle(): string
     public function getCrearClienteUrl(): string
     {
         return \App\Filament\Admin\Resources\Clientes\ClienteResource::getUrl('create');
+    }
+
+    public function updatedMontoTemporal(): void
+    {
+        $this->montoTemporal = (float) ($this->montoTemporal ?: 0);
+        $this->montoCambio = max((float) ($this->montoRecibido ?: 0) - $this->montoTemporal, 0);
+    }
+
+    public function updatedMontoRecibido(): void
+    {
+        $this->montoRecibido = (float) ($this->montoRecibido ?: 0);
+        $this->montoCambio = max($this->montoRecibido - (float) ($this->montoTemporal ?: 0), 0);
+    }
+
+    public function getDescuentoGlobalActivoProperty(): ?Descuento
+    {
+        return Descuento::query()
+            ->where('nivel', 'global')
+            ->where('activo', true)
+            ->whereDate('inicio', '<=', Carbon::today())
+            ->whereDate('fin', '>=', Carbon::today())
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function getMontoDescuentoProperty(): float
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return 0.0;
+        }
+
+        $total = (float) $this->total;
+
+        if (! is_null($descuento->porcentaje)) {
+            return round($total * ((float) $descuento->porcentaje / 100), 2);
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return round((float) $descuento->fijo, 2);
+        }
+
+        return 0.0;
+    }
+
+    public function getTotalConDescuentoProperty(): float
+    {
+        return max((float) $this->total - (float) $this->montoDescuento, 0);
+    }
+
+    public function getEtiquetaDescuentoProperty(): ?string
+    {
+        $descuento = $this->descuentoGlobalActivo;
+
+        if (! $descuento) {
+            return null;
+        }
+
+        if (! is_null($descuento->porcentaje)) {
+            return number_format((float) $descuento->porcentaje, 2) . '%';
+        }
+
+        if (! is_null($descuento->fijo)) {
+            return '$' . number_format((float) $descuento->fijo, 2);
+        }
+
+        return null;
     }
 }
