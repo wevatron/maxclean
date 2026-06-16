@@ -17,7 +17,7 @@ class ProductoForm
         return $schema
             ->components([
                 Section::make('Información del producto')
-                    ->description('Configura los productos que requieren inventario y pueden venderse en autoservicio.')
+                    ->description('Configura los productos con inventario, precio de compra y precio de venta para autoservicio.')
                     ->schema([
                         Grid::make(2)
                             ->schema([
@@ -47,6 +47,14 @@ class ProductoForm
 
                                 TextInput::make('precio_base')
                                     ->label('Precio base')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->required()
+                                    ->minValue(0)
+                                    ->step(0.01),
+
+                                TextInput::make('precio_compra')
+                                    ->label('Precio de compra')
                                     ->numeric()
                                     ->prefix('$')
                                     ->required()

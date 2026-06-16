@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Catalogos\Resources\Productos;
 use App\Filament\Clusters\Catalogos\Resources\Productos\Pages\CreateProducto;
 use App\Filament\Clusters\Catalogos\Resources\Productos\Pages\EditProducto;
 use App\Filament\Clusters\Catalogos\Resources\Productos\Pages\ListProductos;
+use App\Filament\Clusters\Catalogos\Resources\Productos\RelationManagers\DotacionesRelationManager;
 use App\Filament\Clusters\Catalogos\Resources\Productos\Schemas\ProductoForm;
 use App\Filament\Clusters\Catalogos\Resources\Productos\Tables\ProductosTable;
 use App\Filament\Clusters\ProductosServicios\ProductosServiciosCluster;
@@ -45,7 +46,9 @@ class ProductoResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            DotacionesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

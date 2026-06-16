@@ -10,12 +10,14 @@ class Producto extends Model
         'sucursal_id',
         'nombre',
         'descripcion',
+        'precio_compra',
         'precio_base',
         'existencia',
         'activo',
     ];
 
     protected $casts = [
+        'precio_compra' => 'decimal:2',
         'precio_base' => 'decimal:2',
         'existencia' => 'integer',
         'activo' => 'boolean',
@@ -35,5 +37,10 @@ class Producto extends Model
     public function sucursal()
     {
         return $this->belongsTo(Sucursal::class);
+    }
+
+    public function dotaciones()
+    {
+        return $this->hasMany(DotacionInventario::class);
     }
 }

@@ -35,6 +35,11 @@ class ProductosTable
                     ->sortable()
                     ->weight('bold'),
 
+                TextColumn::make('precio_compra')
+                    ->label('Compra')
+                    ->money('MXN')
+                    ->sortable(),
+
                 TextColumn::make('existencia')
                     ->label('Existencia')
                     ->sortable()
