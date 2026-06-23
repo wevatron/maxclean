@@ -8,8 +8,13 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Http;
+use Throwable;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class EditCuenta extends EditRecord
 {
@@ -22,14 +27,77 @@ class EditCuenta extends EditRecord
                 ->label('Imprimir cuenta')
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->url(fn () => route('cuentas.ticket', $this->record))
+                ->url(fn() => route('cuentas.ticket', $this->record))
                 ->openUrlInNewTab(),
+
+            Action::make('imprimir')
+                ->label('Imprimir cuenta física')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->action(function () {
+                    try {
+                        $cuenta = $this->record->load([
+                            'cliente',
+                            'sucursal',
+                            'operador',
+                            'pagos.operador',
+                            'tickets' => function ($query) {
+                                $query->with([
+                                    'status',
+                                    'pagos' => function ($subQuery) {
+                                        $subQuery
+                                            ->where('cancelado', false)
+                                            ->orderBy('created_at');
+                                    },
+                                ])->orderBy('id');
+                            },
+                            'ticketPagos' => function ($query) {
+                                $query
+                                    ->with('ticket')
+                                    ->where('cancelado', false)
+                                    ->orderBy('created_at');
+                            },
+                        ]);
+
+                        $payload = $this->buildCuentaPrinterPayload($cuenta);
+
+                        $response = Http::timeout($this->printerTimeout())
+                            ->acceptJson()
+                            ->post($this->printerServiceUrl(), $payload);
+
+                        if (! $response->successful()) {
+                            throw new \RuntimeException(
+                                $response->json('msg')
+                                    ?? $response->body()
+                                    ?? 'La impresora respondió con un error.'
+                            );
+                        }
+
+                        if (($response->json('status') ?? null) !== 'ok') {
+                            throw new \RuntimeException(
+                                $response->json('msg')
+                                    ?? 'La impresora no confirmó la impresión.'
+                            );
+                        }
+
+                        Notification::make()
+                            ->title('Cuenta enviada a la impresora')
+                            ->success()
+                            ->send();
+                    } catch (Throwable $throwable) {
+                        Notification::make()
+                            ->title('No se pudo imprimir la cuenta')
+                            ->body($throwable->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
 
             Action::make('recalcular')
                 ->label('Recalcular cuenta')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
-                ->visible(fn (): bool => $this->record->estatus !== 'cancelada')
+                ->visible(fn(): bool => $this->record->estatus !== 'cancelada')
                 ->action(function () {
                     /** @var Cuenta $record */
                     $record = $this->record;
@@ -51,20 +119,39 @@ class EditCuenta extends EditRecord
                 ->label('Abonar / Liquidar cuenta')
                 ->icon('heroicon-o-banknotes')
                 ->color('success')
-                ->visible(fn (): bool => (float) $this->record->saldo > 0 && in_array($this->record->estatus, ['abierta', 'parcial'], true))
+                ->visible(fn(): bool => (float) $this->record->saldo > 0 && in_array($this->record->estatus, ['abierta', 'parcial'], true))
                 ->requiresConfirmation()
-                ->modalHeading(fn () => 'Abonar a cuenta ' . $this->record->numero)
+                ->modalHeading(fn() => 'Abonar a cuenta ' . $this->record->numero)
                 ->modalDescription('Puedes abonar una parcialidad o liquidar el saldo completo. El pago se repartirá entre los tickets pendientes.')
-                ->modalContent(fn () => $this->descuentoCuentaBadge())
+                ->modalContent(fn() => $this->descuentoCuentaBadge())
                 ->form([
                     TextInput::make('monto')
                         ->label('Monto a abonar')
                         ->prefix('$')
                         ->numeric()
-                        ->minValue(fn () => (float) $this->record->saldo > 0 ? 0.01 : 0)
-                        ->default(fn () => (float) $this->record->saldo)
+                        ->minValue(fn() => (float) $this->record->saldo > 0 ? 0.01 : 0)
+                        ->default(fn() => (float) $this->record->saldo)
                         ->required()
-                        ->helperText(fn () => $this->helperSaldoCuenta()),
+                        ->live(onBlur: true)
+                        ->helperText(fn() => $this->helperSaldoCuenta()),
+
+                    TextInput::make('efectivo_recibido')
+                        ->label('Efectivo recibido')
+                        ->prefix('$')
+                        ->numeric()
+                        ->default(fn (Get $get) => (float) ($get('monto') ?? $this->record->saldo))
+                        ->live(onBlur: true)
+                        ->visible(fn (Get $get) => ($get('metodo_pago') ?? 'efectivo') === 'efectivo')
+                        ->helperText(function (Get $get): string {
+                            return $this->helperCambioCuenta($get);
+                        }),
+
+                    TextInput::make('referencia')
+                        ->label('Referencia')
+                        ->placeholder('Número de transferencia, autorización o nota')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get) => ($get('metodo_pago') ?? 'efectivo') === 'transferencia')
+                        ->helperText('Opcional. Úsala para identificar la transferencia o un comprobante.'),
 
                     Select::make('metodo_pago')
                         ->label('Método de pago')
@@ -74,13 +161,22 @@ class EditCuenta extends EditRecord
                             'tarjeta' => 'Tarjeta',
                         ])
                         ->default('efectivo')
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            if ($state === 'transferencia') {
+                                $set('efectivo_recibido', null);
+                            } else {
+                                $set('referencia', null);
+                                if ($state !== 'efectivo') {
+                                    $set('efectivo_recibido', null);
+                                }
+                            }
+                        })
                         ->required(),
                 ])
                 ->action(function (array $data) {
                     /** @var Cuenta $record */
                     $record = $this->record;
-
-                    $data['referencia'] = null;
 
                     CuentaResource::liquidarCuenta($record, $data);
 
@@ -99,9 +195,9 @@ class EditCuenta extends EditRecord
                 ->label('Cancelar cuenta')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->visible(fn (): bool => $this->record->estatus !== 'cancelada')
+                ->visible(fn(): bool => $this->record->estatus !== 'cancelada')
                 ->requiresConfirmation()
-                ->modalHeading(fn () => 'Cancelar cuenta ' . $this->record->numero)
+                ->modalHeading(fn() => 'Cancelar cuenta ' . $this->record->numero)
                 ->modalDescription('Esta acción cancelará la cuenta, sus tickets, sus pagos y eliminará los puntos generados por esos tickets. No se permitirá si algún pago ya está incluido en un corte de caja.')
                 ->form([
                     Textarea::make('motivo')
@@ -163,5 +259,133 @@ class EditCuenta extends EditRecord
         }
 
         return 'Saldo pendiente: $' . number_format($saldo, 2);
+    }
+
+    protected function helperCambioCuenta(Get $get): string
+    {
+        $monto = (float) ($get('monto') ?? 0);
+        $efectivoRecibido = (float) ($get('efectivo_recibido') ?? 0);
+
+        if ($monto <= 0) {
+            return 'Captura primero el monto a abonar.';
+        }
+
+        if ($efectivoRecibido <= 0) {
+            return 'Captura cuánto te entrega el cliente para calcular el cambio.';
+        }
+
+        if ($efectivoRecibido >= $monto) {
+            return 'Cambio a devolver: $' . number_format($efectivoRecibido - $monto, 2);
+        }
+
+        return 'Faltan $' . number_format($monto - $efectivoRecibido, 2) . ' para cubrir el pago.';
+    }
+
+    protected function buildCuentaPrinterPayload(Cuenta $cuenta): array
+    {
+        $tickets = $cuenta->tickets;
+        $pagosAplicados = $cuenta->ticketPagos;
+
+        $totalTickets = (float) $tickets->sum('total');
+        $totalDescuentos = (float) $tickets->sum(fn ($ticket) => (float) ($ticket->descuento_aplicado ?? 0));
+        $totalAntesDescuento = $totalTickets + $totalDescuentos;
+        $totalPagado = (float) $pagosAplicados->sum('monto');
+        $saldo = max($totalTickets - $totalPagado, 0);
+
+        return [
+            'tipo' => 'cuenta',
+            'titulo' => 'MAX & CLEAN',
+            'subtitulo' => 'Estado de cuenta',
+            'sucursal' => $cuenta->sucursal?->nombre,
+            'fecha' => now()->format('d/m/Y H:i'),
+            'numero' => $cuenta->numero,
+            'total' => $totalTickets,
+            'qr' => (string) $cuenta->id,
+            'numero_impreso' => str_pad((string) $cuenta->id, 6, '0', STR_PAD_LEFT),
+            'cuenta' => [
+                'id' => $cuenta->id,
+                'numero' => $cuenta->numero,
+                'cliente' => $cuenta->cliente?->name,
+                'whatsapp' => $cuenta->cliente?->whatsapp,
+                'estatus' => ucfirst((string) $cuenta->estatus),
+                'abierta_en' => $cuenta->abierta_en?->format('d/m/Y H:i')
+                    ?? $cuenta->created_at?->format('d/m/Y H:i'),
+                'notas' => $cuenta->notas,
+            ],
+            'tickets' => $tickets->map(function ($ticket) {
+                $pagadoTicket = (float) $ticket->pagos->where('cancelado', false)->sum('monto');
+                $saldoTicket = max((float) $ticket->total - $pagadoTicket, 0);
+
+                return [
+                    'numero' => $ticket->numero,
+                    'tipo' => match ($ticket->tipo) {
+                        'encargo' => 'Pieza',
+                        'encargo_express' => 'Express',
+                        'encargo_kilo' => 'Kilo',
+                        'autoservicio' => 'Auto',
+                        default => (string) $ticket->tipo,
+                    },
+                    'total' => number_format((float) $ticket->total, 2, '.', ''),
+                    'descuento' => number_format((float) ($ticket->descuento_aplicado ?? 0), 2, '.', ''),
+                    'pagado' => number_format($pagadoTicket, 2, '.', ''),
+                    'saldo' => number_format($saldoTicket, 2, '.', ''),
+                ];
+            })->values()->all(),
+            'items' => $tickets->map(function ($ticket) {
+                $pagadoTicket = (float) $ticket->pagos->where('cancelado', false)->sum('monto');
+                $saldoTicket = max((float) $ticket->total - $pagadoTicket, 0);
+
+                return [
+                    'nombre' => 'Ticket #' . $ticket->numero . ' (' . match ($ticket->tipo) {
+                        'encargo' => 'Pieza',
+                        'encargo_express' => 'Express',
+                        'encargo_kilo' => 'Kilo',
+                        'autoservicio' => 'Auto',
+                        default => (string) $ticket->tipo,
+                    } . ')',
+                    'precio' => number_format((float) $ticket->total, 2, '.', ''),
+                    'descuento' => number_format((float) ($ticket->descuento_aplicado ?? 0), 2, '.', ''),
+                    'pagado' => number_format($pagadoTicket, 2, '.', ''),
+                    'saldo' => number_format($saldoTicket, 2, '.', ''),
+                ];
+            })->values()->all(),
+            'pagos_aplicados' => $pagosAplicados->map(function ($pago) {
+                return [
+                    'fecha' => $pago->created_at?->format('d/m H:i'),
+                    'ticket' => $pago->ticket?->numero ?? 'S/I',
+                    'metodo_pago' => ucfirst((string) $pago->metodo_pago),
+                    'monto' => number_format((float) $pago->monto, 2, '.', ''),
+                ];
+            })->values()->all(),
+            'resumen' => [
+                'total_antes_descuento' => number_format($totalAntesDescuento, 2, '.', ''),
+                'descuentos_aplicados' => number_format($totalDescuentos, 2, '.', ''),
+                'total_tickets' => number_format($totalTickets, 2, '.', ''),
+                'total_pagado' => number_format($totalPagado, 2, '.', ''),
+                'saldo' => number_format($saldo, 2, '.', ''),
+            ],
+        ];
+    }
+
+    protected function printerServiceUrl(): string
+    {
+        $url = config('services.printer.url');
+
+        if (is_string($url) && trim($url) !== '') {
+            return trim($url);
+        }
+
+        return env('PRINTER_SERVICE_URL', 'http://192.168.1.114:5000/print');
+    }
+
+    protected function printerTimeout(): int
+    {
+        $timeout = config('services.printer.timeout');
+
+        if (is_numeric($timeout) && (int) $timeout > 0) {
+            return (int) $timeout;
+        }
+
+        return (int) env('PRINTER_SERVICE_TIMEOUT', 10);
     }
 }

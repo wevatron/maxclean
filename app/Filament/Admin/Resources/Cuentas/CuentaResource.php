@@ -34,7 +34,6 @@ class CuentaResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Cuentas';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Gestión';
     protected static ?string $navigationLabel = 'F7 Cuentas';
 
     protected static ?int $navigationSort = 5;

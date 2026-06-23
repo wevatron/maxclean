@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Filament\Admin\Pages\Autoservicio;
-use App\Filament\Admin\Pages\CorteCaja;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\Escaner;
 use App\Filament\Admin\Pages\PorEncargo;
@@ -43,7 +42,6 @@ class AppServiceProvider extends ServiceProvider
                     'F2' => PorEncargo::getUrl(),
                     'F3' => PorKilo::getUrl(),
                     'F4' => Autoservicio::getUrl(),
-                    'F5' => \App\Filament\Admin\Pages\CorteCaja::getUrl(),
                     'F6' => ClienteResource::getUrl(),
                     'F7' => \App\Filament\Admin\Resources\Cuentas\CuentaResource::getUrl(),
                     'F8' => \App\Filament\Admin\Resources\Tickets\TicketResource::getUrl(),

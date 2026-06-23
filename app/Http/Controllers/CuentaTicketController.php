@@ -18,6 +18,9 @@ class CuentaTicketController extends Controller
             'tickets' => function ($query) {
                 $query->with([
                     'status',
+                    'items',
+                    'productos',
+                    'servicios',
                     'pagos' => function ($subQuery) {
                         $subQuery
                             ->where('cancelado', false)
@@ -28,7 +31,21 @@ class CuentaTicketController extends Controller
             },
         ]);
 
-        $tickets = $cuenta->tickets;
+        $tickets = $cuenta->tickets->map(function ($ticket) {
+            $unidad = match ($ticket->tipo) {
+                'encargo_kilo' => number_format((float) $ticket->kilos, 2) . ' kg',
+                'encargo', 'encargo_express' => $ticket->items->sum('cantidad') . ' piezas',
+                'autoservicio' => (
+                    (int) $ticket->productos->sum(fn ($producto) => (int) ($producto->pivot->cantidad ?? 1))
+                    + (int) $ticket->servicios->sum(fn ($servicio) => (int) ($servicio->pivot->cantidad ?? 1))
+                ) . ' prod/serv',
+                default => '-',
+            };
+
+            $ticket->unidad = $unidad;
+
+            return $ticket;
+        });
 
         $totalTickets = $tickets->sum('total');
         $totalDescuentos = $tickets->sum(fn ($ticket) => (float) ($ticket->descuento_aplicado ?? 0));

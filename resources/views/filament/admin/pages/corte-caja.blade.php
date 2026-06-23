@@ -306,10 +306,34 @@
 
                 <div class="corte-summary corte-summary-saldo">
                     <div class="corte-summary-label" style="color:#1d4ed8;">
-                        Saldo en caja
+                        Saldo global
                     </div>
                     <div class="corte-summary-value">
                         ${{ number_format($resumen['saldo'] ?? 0, 2) }}
+                    </div>
+                </div>
+
+                <div class="corte-summary corte-summary-saldo">
+                    <div class="corte-summary-label" style="color:#1d4ed8;">
+                        Saldo en caja
+                    </div>
+                    <div class="corte-summary-value">
+                        ${{ number_format($resumen['saldo_caja'] ?? 0, 2) }}
+                    </div>
+                    <div class="corte-subtext">
+                        Solo efectivo, dotaciones y gastos
+                    </div>
+                </div>
+
+                <div class="corte-summary corte-summary-saldo">
+                    <div class="corte-summary-label" style="color:#1d4ed8;">
+                        Bancos
+                    </div>
+                    <div class="corte-summary-value">
+                        ${{ number_format($resumen['bancos'] ?? 0, 2) }}
+                    </div>
+                    <div class="corte-subtext">
+                        Tarjetas + transferencias
                     </div>
                 </div>
 

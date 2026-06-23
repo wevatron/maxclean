@@ -248,6 +248,7 @@
                     <tr>
                         <th>Ticket</th>
                         <th>Tipo</th>
+                        <th>Unidad</th>
                         <th class="right">Total</th>
                         <th class="right">Desc.</th>
                         <th class="right">Pagado</th>
@@ -273,6 +274,7 @@
                         <tr>
                             <td>#{{ $ticket->numero }}</td>
                             <td>{{ $tipoTicket }}</td>
+                            <td>{{ $ticket->unidad ?? '-' }}</td>
                             <td class="right">${{ number_format($ticket->total, 2) }}</td>
                             <td class="right">${{ number_format($descuentoTicket, 2) }}</td>
                             <td class="right">${{ number_format($pagadoTicket, 2) }}</td>

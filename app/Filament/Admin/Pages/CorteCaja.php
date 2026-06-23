@@ -23,8 +23,9 @@ class CorteCaja extends Page
 
     protected string $view = 'filament.admin.pages.corte-caja';
 
-    protected static ?string $navigationLabel = 'F5 Corte Caja';
+    protected static ?string $navigationLabel = 'Corte Caja';
     protected static ?int $navigationSort = 4;
+    protected static bool $shouldRegisterNavigation = true;
 
     public $fecha;
     public $turno = 'matutino';
@@ -62,17 +63,20 @@ class CorteCaja extends Page
         $totalVentas = $ventas->sum('monto');
         $totalDotaciones = $dotaciones->sum('monto');
         $totalGastos = $gastos->sum('monto');
+        $totalEfectivo = $ventas->where('metodo_pago', 'efectivo')->sum('monto');
 
         $this->resumen = [
             'ventas' => $totalVentas,
             'dotaciones' => $totalDotaciones,
             'gastos' => $totalGastos,
             'saldo' => ($totalVentas + $totalDotaciones) - $totalGastos,
+            'saldo_caja' => ($totalEfectivo + $totalDotaciones) - $totalGastos,
 
             // Por si luego los necesitas para otros reportes
-            'efectivo' => $ventas->where('metodo_pago', 'efectivo')->sum('monto'),
+            'efectivo' => $totalEfectivo,
             'tarjeta' => $ventas->where('metodo_pago', 'tarjeta')->sum('monto'),
             'transferencia' => $ventas->where('metodo_pago', 'transferencia')->sum('monto'),
+            'bancos' => $ventas->whereIn('metodo_pago', ['tarjeta', 'transferencia'])->sum('monto'),
             'total' => $totalVentas,
         ];
     }
