@@ -1188,6 +1188,7 @@
                                 $indexActual = array_search($proceso->proceso, $ordenProcesos);
 
                                 $puedeMarcar = true;
+                                $puedeDesmarcar = true;
 
                                 if ($indexActual > 0) {
                                     $procesoAnterior = $ordenProcesos[$indexActual - 1];
@@ -1197,36 +1198,77 @@
                                         ->where('completado', true)
                                         ->isNotEmpty();
                                 }
+
+                                if ($proceso->proceso === 'entregado' && $completado) {
+                                    $puedeDesmarcar = optional($proceso->updated_at)->toDateString() === now()->toDateString();
+                                }
                             @endphp
 
                             @if (!$completado)
-                                <button
-                                    @if ($puedeMarcar) wire:click="confirmarProceso({{ $proceso->id }})"
-                                    @else
-                                        disabled @endif
-                                    style="
-                                        background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
-                                        color:#fff;
-                                        padding:6px 12px;
-                                        border-radius:8px;
-                                        font-size:12px;
-                                        border:none;
-                                        cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
-                                    ">
-                                    Marcar completado
-                                </button>
+                                @if ($proceso->proceso === 'entregado')
+                                    <button
+                                        @if ($puedeMarcar) wire:click="confirmarCompletarEntregado({{ $proceso->id }})"
+                                        @else
+                                            disabled @endif
+                                        style="
+                                            background: {{ $puedeMarcar ? '#b91c1c' : '#334155' }};
+                                            color:#fff;
+                                            padding:6px 12px;
+                                            border-radius:8px;
+                                            font-size:12px;
+                                            border:none;
+                                            cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
+                                        ">
+                                        Marcar entregado
+                                    </button>
+                                @else
+                                    <button
+                                        @if ($puedeMarcar) wire:click="confirmarProceso({{ $proceso->id }})"
+                                        @else
+                                            disabled @endif
+                                        style="
+                                            background: {{ $puedeMarcar ? '#16a34a' : '#334155' }};
+                                            color:#fff;
+                                            padding:6px 12px;
+                                            border-radius:8px;
+                                            font-size:12px;
+                                            border:none;
+                                            cursor: {{ $puedeMarcar ? 'pointer' : 'not-allowed' }};
+                                        ">
+                                        Marcar completado
+                                    </button>
+                                @endif
                             @else
-                                <span
-                                    style="
-                                        background:#065f46;
-                                        color:#bbf7d0;
-                                        padding:6px 10px;
-                                        border-radius:8px;
-                                        font-size:12px;
-                                        font-weight:700;
-                                    ">
-                                    COMPLETADO
-                                </span>
+                                @if ($proceso->proceso === 'entregado')
+                                    <button
+                                        @if ($puedeDesmarcar) wire:click="confirmarDesmarcarEntregado({{ $proceso->id }})"
+                                        @else
+                                            disabled @endif
+                                        title="{{ $puedeDesmarcar ? 'Desmarcar entregado' : 'Solo se puede desmarcar el mismo día' }}"
+                                        style="
+                                            background: {{ $puedeDesmarcar ? '#991b1b' : '#334155' }};
+                                            color:#fff;
+                                            padding:6px 12px;
+                                            border-radius:8px;
+                                            font-size:12px;
+                                            border:none;
+                                            cursor: {{ $puedeDesmarcar ? 'pointer' : 'not-allowed' }};
+                                        ">
+                                        Desmarcar entregado
+                                    </button>
+                                @else
+                                    <span
+                                        style="
+                                            background:#065f46;
+                                            color:#bbf7d0;
+                                            padding:6px 10px;
+                                            border-radius:8px;
+                                            font-size:12px;
+                                            font-weight:700;
+                                        ">
+                                        COMPLETADO
+                                    </span>
+                                @endif
                             @endif
                         </div>
                     </div>

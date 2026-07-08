@@ -13,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ViewTicket extends ViewRecord
 {
@@ -23,6 +24,7 @@ class ViewTicket extends ViewRecord
     protected $listeners = [
         'ejecutarCancelacion' => 'cancelarPago',
         'ejecutarProceso' => 'marcarProceso',
+        'ejecutarDesmarcarProceso' => 'desmarcarProceso',
     ];
 
     public bool $modalAgregarPrendaAbierto = false;
@@ -788,6 +790,111 @@ class ViewTicket extends ViewRecord
             ->title('Proceso completado')
             ->success()
             ->send();
+    }
+
+    public function confirmarCompletarEntregado(int $procesoId): void
+    {
+        Notification::make()
+            ->title('¿Estás seguro?')
+            ->body('Marcar Entregado como completado cerrará el flujo del ticket.')
+            ->danger()
+            ->actions([
+                Action::make('confirmar')
+                    ->label('Sí, marcar entregado')
+                    ->color('danger')
+                    ->button()
+                    ->dispatch('ejecutarProceso', ['procesoId' => $procesoId])
+                    ->close(),
+
+                Action::make('cancelar')
+                    ->label('Cancelar')
+                    ->color('gray')
+                    ->button()
+                    ->close(),
+            ])
+            ->send();
+    }
+
+    public function confirmarDesmarcarEntregado(int $procesoId): void
+    {
+        $proceso = $this->record->procesos()->find($procesoId);
+
+        if (! $proceso || $proceso->proceso !== 'entregado' || ! $proceso->completado) {
+            return;
+        }
+
+        if (! $this->puedeDesmarcarEntregado($proceso)) {
+            Notification::make()
+                ->title('No se puede desmarcar')
+                ->body('Solo puedes desmarcar Entregado el mismo día en que se marcó.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('¿Estás seguro?')
+            ->body('Desmarcar Entregado reabrirá el proceso y quitará el estado de entrega.')
+            ->danger()
+            ->actions([
+                Action::make('confirmar')
+                    ->label('Sí, desmarcar')
+                    ->color('danger')
+                    ->button()
+                    ->dispatch('ejecutarDesmarcarProceso', ['procesoId' => $procesoId])
+                    ->close(),
+
+                Action::make('cancelar')
+                    ->label('Cancelar')
+                    ->color('gray')
+                    ->button()
+                    ->close(),
+            ])
+            ->send();
+    }
+
+    public function desmarcarProceso(int $procesoId): void
+    {
+        $proceso = $this->record->procesos()->find($procesoId);
+
+        if (! $proceso || $proceso->proceso !== 'entregado' || ! $proceso->completado) {
+            return;
+        }
+
+        if (! $this->puedeDesmarcarEntregado($proceso)) {
+            Notification::make()
+                ->title('No se puede desmarcar')
+                ->body('Solo puedes desmarcar Entregado el mismo día en que se marcó.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $statusAnteriorId = TicketStatus::whereRaw('LOWER(nombre) = ?', ['doblado y empaquetado'])->value('id');
+
+        $proceso->update([
+            'completado' => false,
+        ]);
+
+        if ($statusAnteriorId) {
+            $this->record->update([
+                'status_id' => $statusAnteriorId,
+            ]);
+        }
+
+        $this->record->refresh();
+
+        Notification::make()
+            ->title('Proceso revertido')
+            ->success()
+            ->send();
+    }
+
+    protected function puedeDesmarcarEntregado($proceso): bool
+    {
+        return $proceso->updated_at?->toDateString() === Carbon::today()->toDateString();
     }
 
     public function confirmarCancelacion($pagoId)

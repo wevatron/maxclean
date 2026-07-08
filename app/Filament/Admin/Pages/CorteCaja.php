@@ -48,7 +48,7 @@ class CorteCaja extends Page
                 $q->where('cancelado', false)
                     ->orWhereNull('cancelado');
             })
-            ->whereDate('created_at', $this->fecha)
+            ->whereDate('created_at', '<=', $this->fecha)
             ->where('user_id', auth()->id())
             ->orderBy('created_at', 'asc')
             ->get();
@@ -102,14 +102,20 @@ class CorteCaja extends Page
                                 return [];
                             }
 
-                            return CorteModel::query()
+                            $query = CorteModel::query()
+                                ->with(['sucursal', 'operador'])
                                 ->whereDate('fecha', $get('fecha'))
-                                ->where('user_id', auth()->id())
-                                ->latest('id')
-                                ->get()
+                                ->latest('id');
+
+                            if (! auth()->user()?->hasRole('super_admin')) {
+                                $query->where('user_id', auth()->id());
+                            }
+
+                            return $query->get()
                                 ->mapWithKeys(fn($corte) => [
                                     $corte->id =>
                                     'Corte #' . $corte->id .
+                                        ' | Sucursal: ' . ($corte->sucursal?->nombre ?? 'Sin sucursal') .
                                         ' | Turno: ' . ucfirst($corte->turno) .
                                         ' | Total: $' . number_format($corte->total, 2),
                                 ]);

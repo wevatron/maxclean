@@ -460,7 +460,7 @@
                                 Kilos
                             </label>
 
-                            <input type="number" step="0.01" min="0" wire:model.live="kilos"
+                            <input type="number" step="0.01" min="{{ $this->minKilos }}" wire:model.live="kilos"
                                 style="
                                     width:100%;
                                     padding:12px;
@@ -468,6 +468,10 @@
                                     border:1px solid #d1d5db;
                                     color:#111827;
                                 " />
+
+                            <div style="margin-top:6px; font-size:12px; color:#6b7280;">
+                                Mínimo: {{ rtrim(rtrim(number_format($this->minKilos, 2), '0'), '.') }} kg
+                            </div>
                         </div>
 
                         <div style="margin-bottom:16px;">

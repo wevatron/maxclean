@@ -284,6 +284,7 @@
                                 <th>Descripción</th>
                                 <th class="text-right">Monto</th>
                                 <th class="text-center">Hora</th>
+                                <th class="text-center">Fecha</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -303,6 +304,9 @@
                                     <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
                                     <td class="text-center">
                                         {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
+                                    </td>
+                                    <td class="text-center">
+                                        {{ $pago->created_at ? $pago->created_at->format('d/m/Y') : '-' }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -332,6 +336,7 @@
                                 <th>Descripción</th>
                                 <th class="text-right">Monto</th>
                                 <th class="text-center">Hora</th>
+                                <th class="text-center">Fecha</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -351,6 +356,9 @@
                                     <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
                                     <td class="text-center">
                                         {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
+                                    </td>
+                                    <td class="text-center">
+                                        {{ $pago->created_at ? $pago->created_at->format('d/m/Y') : '-' }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -381,14 +389,15 @@
             <div class="section-title" style="margin-top: 12px;">Otros movimientos</div>
             <div class="table-wrap">
                 <table class="main">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Descripción</th>
-                            <th class="text-right">Monto</th>
-                            <th class="text-center">Hora</th>
-                        </tr>
-                    </thead>
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th class="text-right">Monto</th>
+                                <th class="text-center">Hora</th>
+                                <th class="text-center">Fecha</th>
+                            </tr>
+                        </thead>
                     <tbody>
                         @foreach($otrosMovimientos as $pago)
                             @php
@@ -404,11 +413,14 @@
                                     @endif
                                 </td>
                                 <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
-                                <td class="text-center">
-                                    {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
-                                </td>
-                            </tr>
-                        @endforeach
+                                    <td class="text-center">
+                                        {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
+                                    </td>
+                                    <td class="text-center">
+                                        {{ $pago->created_at ? $pago->created_at->format('d/m/Y') : '-' }}
+                                    </td>
+                                </tr>
+                            @endforeach
                     </tbody>
                 </table>
             </div>

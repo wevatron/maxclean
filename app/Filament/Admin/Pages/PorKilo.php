@@ -207,6 +207,17 @@ class PorKilo extends Page
         };
     }
 
+    public function getMinKilosProperty(): float
+    {
+        $tipo = $this->tiposLavado->firstWhere('clave', $this->tipoLavado);
+
+        if ($tipo && ((int) $tipo->id === 5 || $tipo->clave === 'ropa_interior')) {
+            return 1;
+        }
+
+        return 3;
+    }
+
     public function updatedKilos()
     {
         $this->calcularTotal();
@@ -220,7 +231,7 @@ class PorKilo extends Page
     public function calcularTotal()
     {
         $kilosReales = (float) ($this->kilos ?: 0);
-        $kilosCobrables = max(3, $kilosReales);
+        $kilosCobrables = max((float) $this->minKilos, $kilosReales);
 
         $this->total = (int) round($kilosCobrables * $this->getPrecioPorKilo());
     }

@@ -351,6 +351,7 @@
                             <th>Método</th>
                             <th>Monto</th>
                             <th>Hora</th>
+                            <th>Fecha</th>
                         </tr>
                     </thead>
 
@@ -409,10 +410,14 @@
                                 <td>
                                     {{ $pago->created_at?->format('H:i') }}
                                 </td>
+
+                                <td>
+                                    {{ $pago->created_at?->format('d/m/Y') }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="corte-empty">
+                                <td colspan="7" class="corte-empty">
                                     No hay movimientos pendientes para este turno.
                                 </td>
                             </tr>
