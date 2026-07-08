@@ -33,6 +33,10 @@ class CorteCaja extends Page
     public $resumen = [];
     public $pagos = [];
 
+    protected $listeners = [
+        'ejecutarCerrarTurno' => 'cerrarTurno',
+    ];
+
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
@@ -224,7 +228,25 @@ class CorteCaja extends Page
 
     public function confirmarCerrarTurno(): void
     {
-        $this->cerrarTurno();
+        Notification::make()
+            ->title('¿Estás seguro?')
+            ->body('Esta acción cerrará el turno y marcará todos los pagos pendientes de este corte.')
+            ->warning()
+            ->actions([
+                Action::make('confirmar')
+                    ->label('Sí, cerrar turno')
+                    ->color('danger')
+                    ->button()
+                    ->dispatch('ejecutarCerrarTurno')
+                    ->close(),
+
+                Action::make('cancelar')
+                    ->label('Cancelar')
+                    ->color('gray')
+                    ->button()
+                    ->close(),
+            ])
+            ->send();
     }
 
     public function cerrarTurno(): void
