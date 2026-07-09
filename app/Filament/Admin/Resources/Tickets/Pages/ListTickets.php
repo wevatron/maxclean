@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Tickets\Pages;
 
 use App\Filament\Admin\Resources\Tickets\TicketResource;
+use App\Models\Ticket;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
@@ -104,6 +105,9 @@ class ListTickets extends ListRecords
                     fn (Builder $query) =>
                     $this->sinCuentasCanceladas($query)
                         ->where('tipo', 'autoservicio')
+                        ->where(
+                            fn (Builder $query) => $this->excluirPagadasEnCorte($query)
+                        )
                 ),
 
             /* 'todos' => Tab::make('Todos'), */
@@ -145,6 +149,30 @@ class ListTickets extends ListRecords
     {
         return $this->sinCuentasCanceladas(static::getResource()::getEloquentQuery())
             ->where('tipo', 'autoservicio')
+            ->where(fn (Builder $query) => $this->excluirPagadasEnCorte($query))
             ->count();
+    }
+
+    private function excluirPagadasEnCorte(Builder $query): Builder
+    {
+        $tablaTickets = (new Ticket())->getTable();
+
+        return $query->whereRaw(
+            "NOT (
+                (
+                    SELECT COALESCE(SUM(tp.monto), 0)
+                    FROM ticket_pagos tp
+                    WHERE tp.ticket_id = {$tablaTickets}.id
+                      AND tp.cancelado = 0
+                ) >= {$tablaTickets}.total
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM ticket_pagos tp2
+                    WHERE tp2.ticket_id = {$tablaTickets}.id
+                      AND tp2.cancelado = 0
+                      AND tp2.corte_id IS NULL
+                )
+            )"
+        );
     }
 }

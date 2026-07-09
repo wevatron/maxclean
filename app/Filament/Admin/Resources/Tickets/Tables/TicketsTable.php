@@ -109,6 +109,14 @@ class TicketsTable
                         $record->saldo > 0 ? 'danger' : 'success'
                     ),
 
+                TextColumn::make('corte_id')
+                    ->label('Corte')
+                    ->formatStateUsing(fn ($state) => $state ? '#' . $state : 'Sin corte')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'gray' : 'warning')
+                    ->toggleable()
+                    ->toggledHiddenByDefault(true),
+
                 BadgeColumn::make('status.nombre')
                     ->label('Estado')
                     ->toggleable()

@@ -96,6 +96,21 @@ class Ticket extends Model
         return $this->total - $this->pagado;
     }
 
+    public function getCorteIdAttribute(): ?int
+    {
+        if ($this->relationLoaded('pagos')) {
+            return $this->pagos
+                ->whereNotNull('corte_id')
+                ->sortByDesc('corte_id')
+                ->first()
+                ?->corte_id;
+        }
+
+        return $this->pagos()
+            ->whereNotNull('corte_id')
+            ->max('corte_id');
+    }
+
     public function getEstaLiquidadoAttribute()
     {
         return $this->saldo <= 0;

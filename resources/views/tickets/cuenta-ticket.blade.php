@@ -280,6 +280,29 @@
                             <td class="right">${{ number_format($pagadoTicket, 2) }}</td>
                             <td class="right">${{ number_format($saldoTicket, 2) }}</td>
                         </tr>
+
+                        @if ($ticket->tipo === 'autoservicio' && $ticket->desglose_autoservicio->isNotEmpty())
+                            <tr>
+                                <td colspan="7" style="padding: 0 0 6px 0;">
+                                    <div style="font-size: 9px; line-height: 1.35; border-left: 1px dashed #000; padding-left: 6px; margin-left: 2px;">
+                                        <div class="bold" style="margin-bottom: 2px;">Desglose</div>
+
+                                        @foreach ($ticket->desglose_autoservicio as $detalle)
+                                            <div class="row" style="margin-bottom: 1px;">
+                                                <div class="left">
+                                                    {{ $detalle['tipo'] === 'servicio' ? 'Serv.' : 'Prod.' }}:
+                                                    {{ $detalle['nombre'] }}
+                                                </div>
+                                                <div class="right">
+                                                    {{ $detalle['cantidad'] }} x ${{ number_format($detalle['precio_unitario'], 2) }}
+                                                    = ${{ number_format($detalle['subtotal'], 2) }}
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
                     @endforeach
                 </tbody>
             </table>

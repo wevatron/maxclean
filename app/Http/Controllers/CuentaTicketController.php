@@ -44,6 +44,35 @@ class CuentaTicketController extends Controller
 
             $ticket->unidad = $unidad;
 
+            $ticket->desglose_autoservicio = $ticket->tipo === 'autoservicio'
+                ? $ticket->servicios
+                    ->map(function ($servicio) {
+                        $cantidad = (int) ($servicio->pivot->cantidad ?? 1);
+                        $precioUnitario = (float) ($servicio->pivot->precio_unitario ?? ($servicio->precio_base ?? 0));
+
+                        return [
+                            'tipo' => 'servicio',
+                            'nombre' => $servicio->nombre ?? 'Sin servicio',
+                            'cantidad' => $cantidad,
+                            'precio_unitario' => $precioUnitario,
+                            'subtotal' => (float) ($servicio->pivot->subtotal ?? ($cantidad * $precioUnitario)),
+                        ];
+                    })
+                    ->concat($ticket->productos->map(function ($producto) {
+                        $cantidad = (int) ($producto->pivot->cantidad ?? 1);
+                        $precioUnitario = (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
+
+                        return [
+                            'tipo' => 'producto',
+                            'nombre' => $producto->nombre ?? 'Sin producto',
+                            'cantidad' => $cantidad,
+                            'precio_unitario' => $precioUnitario,
+                            'subtotal' => (float) ($producto->pivot->subtotal ?? ($cantidad * $precioUnitario)),
+                        ];
+                    }))
+                    ->values()
+                : collect();
+
             return $ticket;
         });
 

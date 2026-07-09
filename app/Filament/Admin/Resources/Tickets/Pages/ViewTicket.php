@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Tickets\Pages;
 use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use App\Filament\Admin\Resources\Tickets\TicketResource;
 use App\Models\Prenda;
+use App\Models\Producto;
 use App\Models\Servicio;
 use App\Models\TicketStatus;
 use Filament\Actions\Action;
@@ -38,6 +39,12 @@ class ViewTicket extends ViewRecord
     public ?int $servicioSeleccionadoId = null;
     public ?string $servicioSeleccionadoTexto = null;
     public int $cantidadServicio = 1;
+
+    public bool $modalAgregarProductoAbierto = false;
+    public string $buscarProducto = '';
+    public ?int $productoSeleccionadoId = null;
+    public ?string $productoSeleccionadoTexto = null;
+    public int $cantidadProducto = 1;
 
     protected function getHeaderActions(): array
     {
@@ -100,6 +107,31 @@ class ViewTicket extends ViewRecord
             ->get();
     }
 
+    public function getProductosDisponiblesProperty()
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return collect();
+        }
+
+        $texto = trim($this->buscarProducto);
+
+        if ($texto === '') {
+            return collect();
+        }
+
+        return Producto::query()
+            ->where('activo', true)
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->where('existencia', '>', 0)
+            ->where(function ($query) use ($texto) {
+                $query->where('nombre', 'like', "%{$texto}%")
+                    ->orWhere('descripcion', 'like', "%{$texto}%");
+            })
+            ->orderBy('nombre')
+            ->limit(12)
+            ->get();
+    }
+
     public function updatedBuscarPrenda($value): void
     {
         $value = trim((string) $value);
@@ -123,6 +155,19 @@ class ViewTicket extends ViewRecord
         ) {
             $this->servicioSeleccionadoId = null;
             $this->servicioSeleccionadoTexto = null;
+        }
+    }
+
+    public function updatedBuscarProducto($value): void
+    {
+        $value = trim((string) $value);
+
+        if (
+            $this->productoSeleccionadoId &&
+            $value !== trim((string) $this->productoSeleccionadoTexto)
+        ) {
+            $this->productoSeleccionadoId = null;
+            $this->productoSeleccionadoTexto = null;
         }
     }
 
@@ -178,6 +223,32 @@ class ViewTicket extends ViewRecord
         $this->buscarServicio = '';
     }
 
+    public function abrirModalAgregarProducto(): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            Notification::make()
+                ->title('Solo disponible en tickets de autoservicio')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $this->productoSeleccionadoId = null;
+        $this->productoSeleccionadoTexto = null;
+        $this->cantidadProducto = 1;
+        $this->buscarProducto = '';
+        $this->modalAgregarProductoAbierto = true;
+    }
+
+    public function cerrarModalAgregarProducto(): void
+    {
+        $this->modalAgregarProductoAbierto = false;
+        $this->productoSeleccionadoId = null;
+        $this->productoSeleccionadoTexto = null;
+        $this->cantidadProducto = 1;
+        $this->buscarProducto = '';
+    }
+
     public function seleccionarPrendaInventario(int $prendaId): void
     {
         $prenda = Prenda::query()
@@ -229,6 +300,32 @@ class ViewTicket extends ViewRecord
         $this->buscarServicio = $texto;
     }
 
+    public function seleccionarProductoTicket(int $productoId): void
+    {
+        $producto = Producto::query()
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->where('activo', true)
+            ->find($productoId);
+
+        if (! $producto) {
+            Notification::make()
+                ->title('El producto no es válido')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $texto = $producto->nombre;
+
+        if (! empty($producto->descripcion)) {
+            $texto .= ' - ' . $producto->descripcion;
+        }
+
+        $this->productoSeleccionadoId = $producto->id;
+        $this->productoSeleccionadoTexto = $texto;
+        $this->buscarProducto = $texto;
+    }
+
     public function limpiarSeleccionPrenda(): void
     {
         $this->prendaSeleccionadaId = null;
@@ -241,6 +338,13 @@ class ViewTicket extends ViewRecord
         $this->servicioSeleccionadoId = null;
         $this->servicioSeleccionadoTexto = null;
         $this->buscarServicio = '';
+    }
+
+    public function limpiarSeleccionProducto(): void
+    {
+        $this->productoSeleccionadoId = null;
+        $this->productoSeleccionadoTexto = null;
+        $this->buscarProducto = '';
     }
 
     public function agregarPrendaInventario(): void
@@ -387,6 +491,96 @@ class ViewTicket extends ViewRecord
         $this->cerrarModalAgregarServicio();
     }
 
+    public function agregarProductoTicket(): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            Notification::make()
+                ->title('Solo disponible en tickets de autoservicio')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if (! $this->productoSeleccionadoId) {
+            Notification::make()
+                ->title('Debes seleccionar un producto')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if ((int) $this->cantidadProducto < 1) {
+            Notification::make()
+                ->title('La cantidad debe ser al menos 1')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $producto = Producto::query()
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->where('activo', true)
+            ->find($this->productoSeleccionadoId);
+
+        if (! $producto) {
+            Notification::make()
+                ->title('El producto no es válido')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if ((int) $producto->existencia < (int) $this->cantidadProducto) {
+            Notification::make()
+                ->title('Sin existencia suficiente')
+                ->body("Solo hay {$producto->existencia} unidades disponibles.")
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        DB::transaction(function () use ($producto) {
+            $cantidadNueva = (int) $this->cantidadProducto;
+            $precioUnitario = (float) ($producto->precio_base ?? 0);
+
+            $productoExistente = $this->record->productos()
+                ->where('productos.id', $producto->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($productoExistente) {
+                $cantidadNueva += (int) ($productoExistente->pivot->cantidad ?? 0);
+
+                $this->record->productos()->updateExistingPivot($producto->id, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            } else {
+                $this->record->productos()->attach($producto->id, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            }
+
+            $producto->decrement('existencia', (int) $this->cantidadProducto);
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+
+        Notification::make()
+            ->title('Producto agregado al ticket')
+            ->success()
+            ->send();
+
+        $this->cerrarModalAgregarProducto();
+    }
+
     public function incrementarItemInventario(int $itemId): void
     {
         if (($this->record->tipo ?? null) !== 'encargo_kilo') {
@@ -482,6 +676,134 @@ class ViewTicket extends ViewRecord
         $this->refrescarRecord();
     }
 
+    public function incrementarProductoTicket(int $productoId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $producto = $this->record->productos()
+            ->where('productos.id', $productoId)
+            ->first();
+
+        if (! $producto) {
+            return;
+        }
+
+        $productoInventario = Producto::query()
+            ->where('id', $productoId)
+            ->where('sucursal_id', $this->record->sucursal_id)
+            ->where('activo', true)
+            ->first();
+
+        if (! $productoInventario || (int) $productoInventario->existencia < 1) {
+            Notification::make()
+                ->title('Sin existencia suficiente')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        DB::transaction(function () use ($productoId, $producto, $productoInventario) {
+            $cantidad = (int) ($producto->pivot->cantidad ?? 0) + 1;
+            $precioUnitario = (float) ($producto->pivot->precio_unitario ?? $productoInventario->precio_base ?? 0);
+
+            $this->record->productos()->updateExistingPivot($productoId, [
+                'cantidad' => $cantidad,
+                'precio_unitario' => $precioUnitario,
+                'subtotal' => $cantidad * $precioUnitario,
+            ]);
+
+            $productoInventario->decrement('existencia', 1);
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+    }
+
+    public function disminuirProductoTicket(int $productoId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $producto = $this->record->productos()
+            ->where('productos.id', $productoId)
+            ->first();
+
+        if (! $producto) {
+            return;
+        }
+
+        DB::transaction(function () use ($productoId, $producto) {
+            $cantidadActual = (int) ($producto->pivot->cantidad ?? 0);
+            $precioUnitario = (float) ($producto->pivot->precio_unitario ?? $producto->precio_base ?? 0);
+
+            if ($cantidadActual > 1) {
+                $cantidadNueva = $cantidadActual - 1;
+
+                $this->record->productos()->updateExistingPivot($productoId, [
+                    'cantidad' => $cantidadNueva,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $cantidadNueva * $precioUnitario,
+                ]);
+            } else {
+                $this->record->productos()->detach($productoId);
+            }
+
+            Producto::query()
+                ->where('id', $productoId)
+                ->where('sucursal_id', $this->record->sucursal_id)
+                ->increment('existencia', 1);
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+    }
+
+    public function quitarProductoTicket(int $productoId): void
+    {
+        if (($this->record->tipo ?? null) !== 'autoservicio') {
+            return;
+        }
+
+        $producto = $this->record->productos()
+            ->where('productos.id', $productoId)
+            ->first();
+
+        if (! $producto) {
+            return;
+        }
+
+        DB::transaction(function () use ($productoId, $producto) {
+            $cantidad = (int) ($producto->pivot->cantidad ?? 0);
+
+            $this->record->productos()->detach($productoId);
+
+            if ($cantidad > 0) {
+                Producto::query()
+                    ->where('id', $productoId)
+                    ->where('sucursal_id', $this->record->sucursal_id)
+                    ->increment('existencia', $cantidad);
+            }
+
+            $this->recalcularTotalAutoservicio();
+            $this->actualizarStatusAutoservicioSegunSaldo();
+        });
+
+        $this->refrescarRecord();
+
+        Notification::make()
+            ->title('Producto eliminado del ticket')
+            ->success()
+            ->send();
+    }
+
     public function disminuirServicioTicket(int $servicioId): void
     {
         if (($this->record->tipo ?? null) !== 'autoservicio') {
@@ -553,8 +875,11 @@ class ViewTicket extends ViewRecord
         $totalServicios = (float) $this->record->servicios()
             ->sum('ticket_servicios.subtotal');
 
+        $totalProductos = (float) $this->record->productos()
+            ->sum('ticket_productos.subtotal');
+
         $this->record->update([
-            'total' => $totalServicios,
+            'total' => $totalServicios + $totalProductos,
         ]);
 
         $this->record->refresh();
@@ -607,6 +932,7 @@ class ViewTicket extends ViewRecord
             'pagos',
             'procesos',
             'servicios',
+            'productos',
         ]);
     }
 

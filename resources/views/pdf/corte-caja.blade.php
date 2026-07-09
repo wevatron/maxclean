@@ -65,8 +65,8 @@
         }
 
         .panel-grid td {
-            width: 25%;
-            padding: 0 6px 0 0;
+            width: 33.333%;
+            padding: 0 6px 8px 0;
             vertical-align: top;
         }
 
@@ -216,11 +216,13 @@
             $ventas = $pagos->filter(fn ($p) => ($p->tipo_movimiento ?? 'venta') === 'venta')->sum('monto');
             $dotaciones = $pagos->where('tipo_movimiento', 'dotacion')->sum('monto');
             $gastos = $pagos->where('tipo_movimiento', 'gasto')->sum('monto');
-            $saldo = ($ventas + $dotaciones) - $gastos;
+            $saldoGlobal = ($ventas + $dotaciones) - $gastos;
 
             $efectivo = $pagos->where('tipo_movimiento', 'venta')->where('metodo_pago', 'efectivo')->sum('monto');
             $tarjeta = $pagos->where('tipo_movimiento', 'venta')->where('metodo_pago', 'tarjeta')->sum('monto');
             $transferencia = $pagos->where('tipo_movimiento', 'venta')->where('metodo_pago', 'transferencia')->sum('monto');
+            $saldoCaja = ($efectivo + $dotaciones) - $gastos;
+            $bancos = $tarjeta + $transferencia;
 
             $metodosOrden = ['efectivo', 'tarjeta', 'transferencia'];
             $pagosVentas = $pagos->filter(fn ($p) => ($p->tipo_movimiento ?? 'venta') === 'venta');
@@ -254,12 +256,29 @@
                         <div class="value-muted">Salidas de caja</div>
                     </div>
                 </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="metric">
+                        <div class="label">Saldo global</div>
+                        <div class="value">${{ number_format($saldoGlobal, 2) }}</div>
+                        <div class="value-muted">Ventas + dotaciones - gastos</div>
+                    </div>
+                </td>
 
                 <td>
                     <div class="metric">
                         <div class="label">Saldo en caja</div>
-                        <div class="value">${{ number_format($saldo, 2) }}</div>
+                        <div class="value">${{ number_format($saldoCaja, 2) }}</div>
                         <div class="value-muted">Disponible al cierre</div>
+                    </div>
+                </td>
+
+                <td>
+                    <div class="metric">
+                        <div class="label">Bancos</div>
+                        <div class="value">${{ number_format($bancos, 2) }}</div>
+                        <div class="value-muted">Tarjetas + transferencias</div>
                     </div>
                 </td>
             </tr>
@@ -389,15 +408,15 @@
             <div class="section-title" style="margin-top: 12px;">Otros movimientos</div>
             <div class="table-wrap">
                 <table class="main">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Descripción</th>
-                                <th class="text-right">Monto</th>
-                                <th class="text-center">Hora</th>
-                                <th class="text-center">Fecha</th>
-                            </tr>
-                        </thead>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Descripción</th>
+                            <th class="text-right">Monto</th>
+                            <th class="text-center">Hora</th>
+                            <th class="text-center">Fecha</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @foreach($otrosMovimientos as $pago)
                             @php
@@ -413,13 +432,13 @@
                                     @endif
                                 </td>
                                 <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
-                                    <td class="text-center">
-                                        {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
-                                    </td>
-                                    <td class="text-center">
-                                        {{ $pago->created_at ? $pago->created_at->format('d/m/Y') : '-' }}
-                                    </td>
-                                </tr>
+                                <td class="text-center">
+                                    {{ $pago->created_at ? $pago->created_at->format('H:i') : '-' }}
+                                </td>
+                                <td class="text-center">
+                                    {{ $pago->created_at ? $pago->created_at->format('d/m/Y') : '-' }}
+                                </td>
+                            </tr>
                             @endforeach
                     </tbody>
                 </table>

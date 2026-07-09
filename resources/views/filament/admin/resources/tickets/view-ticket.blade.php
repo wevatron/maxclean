@@ -578,6 +578,185 @@
                         </div>
                     @endforelse
                 </div>
+
+                <div class="ticket-card" style="margin-top:28px;">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+                        <h3 style="font-weight:700; margin:0; color:#ffffff;">
+                            Productos
+                        </h3>
+
+                        <button type="button" wire:click="abrirModalAgregarProducto"
+                            style="
+                                background:#16a34a;
+                                color:#ffffff;
+                                border:none;
+                                padding:10px 14px;
+                                border-radius:10px;
+                                font-size:13px;
+                                font-weight:700;
+                                cursor:pointer;
+                            ">
+                            Agregar producto
+                        </button>
+                    </div>
+
+                    <div class="product-note" style="margin-bottom:16px;">
+                        Los productos agregados aquí también modifican el total del ticket y el saldo pendiente.
+                    </div>
+
+                    <div class="desktop-items ticket-table-wrap">
+                        <table class="ticket-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio unitario</th>
+                                    <th>Subtotal</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @forelse ($record->productos as $producto)
+                                    @php
+                                        $cantidad = (int) ($producto->pivot->cantidad ?? 1);
+                                        $precioUnitario =
+                                            (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
+                                        $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
+                                    @endphp
+
+                                    <tr>
+                                        <td>
+                                            <div style="font-weight:600;">
+                                                {{ $producto->nombre ?? 'Sin producto' }}
+                                            </div>
+
+                                            @if (!empty($producto->descripcion))
+                                                <div class="explicacion-texto">
+                                                    {{ $producto->descripcion }}
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td>{{ $cantidad }}</td>
+
+                                        <td>${{ number_format($precioUnitario, 2) }}</td>
+
+                                        <td style="font-weight:600;">
+                                            ${{ number_format($subtotal, 2) }}
+                                        </td>
+
+                                        <td>
+                                            <div class="inventory-actions">
+                                                <button type="button"
+                                                    wire:click="incrementarProductoTicket({{ $producto->id }})"
+                                                    class="inventory-btn inventory-btn-plus">
+                                                    +
+                                                </button>
+
+                                                <button type="button"
+                                                    wire:click="disminuirProductoTicket({{ $producto->id }})"
+                                                    class="inventory-btn inventory-btn-minus">
+                                                    -
+                                                </button>
+
+                                                <button type="button"
+                                                    wire:click="quitarProductoTicket({{ $producto->id }})"
+                                                    class="inventory-btn inventory-btn-delete">
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" style="color:#9fb3c8;">
+                                            No hay productos registrados.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mobile-items">
+                        @forelse ($record->productos as $producto)
+                            @php
+                                $cantidad = (int) ($producto->pivot->cantidad ?? 1);
+                                $precioUnitario =
+                                    (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
+                                $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
+                            @endphp
+
+                            <div class="mobile-item-card">
+                                <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
+                                    {{ $producto->nombre ?? 'Sin producto' }}
+                                </div>
+
+                                @if (!empty($producto->descripcion))
+                                    <div class="explicacion-texto" style="margin-bottom:12px;">
+                                        {{ $producto->descripcion }}
+                                    </div>
+                                @endif
+
+                                <div class="mobile-item-row">
+                                    <div>
+                                        <div class="mobile-item-label">Cantidad</div>
+                                        <div>{{ $cantidad }}</div>
+                                    </div>
+
+                                    <div style="text-align:right;">
+                                        <div class="mobile-item-label">Precio unitario</div>
+                                        <div>${{ number_format($precioUnitario, 2) }}</div>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:10px;">
+                                    <div class="mobile-item-label">Subtotal</div>
+                                    <div style="font-size:18px; font-weight:800;">
+                                        ${{ number_format($subtotal, 2) }}
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:14px;">
+                                    <div class="mobile-item-label">Acciones</div>
+
+                                    <div class="inventory-actions" style="margin-top:8px;">
+                                        <button type="button"
+                                            wire:click="incrementarProductoTicket({{ $producto->id }})"
+                                            class="inventory-btn inventory-btn-plus">
+                                            +
+                                        </button>
+
+                                        <button type="button"
+                                            wire:click="disminuirProductoTicket({{ $producto->id }})"
+                                            class="inventory-btn inventory-btn-minus">
+                                            -
+                                        </button>
+
+                                        <button type="button"
+                                            wire:click="quitarProductoTicket({{ $producto->id }})"
+                                            class="inventory-btn inventory-btn-delete">
+                                            Quitar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div
+                                style="
+                                    color:#9fb3c8;
+                                    background:#163252;
+                                    border:1px solid #2c5d94;
+                                    padding:14px;
+                                    border-radius:12px;
+                                ">
+                                No hay productos registrados.
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         @else
             <div class="ticket-card" style="margin-bottom:40px;">
@@ -932,118 +1111,6 @@
                     @endforelse
                 </div>
 
-                @if ($record->productos->isNotEmpty())
-                    <div style="margin-top:28px;">
-                        <h3 style="font-weight:700; margin-bottom:15px; color:#ffffff;">
-                            Productos
-                        </h3>
-
-                        <div class="desktop-items ticket-table-wrap">
-                            <table class="ticket-table">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Precio unitario</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    @forelse ($record->productos as $producto)
-                                        @php
-                                            $cantidad = (int) ($producto->pivot->cantidad ?? 1);
-                                            $precioUnitario =
-                                                (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
-                                            $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
-                                        @endphp
-
-                                        <tr>
-                                            <td>
-                                                <div style="font-weight:600;">
-                                                    {{ $producto->nombre ?? 'Sin producto' }}
-                                                </div>
-
-                                                @if (!empty($producto->descripcion))
-                                                    <div class="explicacion-texto">
-                                                        {{ $producto->descripcion }}
-                                                    </div>
-                                                @endif
-                                            </td>
-
-                                            <td>{{ $cantidad }}</td>
-
-                                            <td>${{ number_format($precioUnitario, 2) }}</td>
-
-                                            <td style="font-weight:600;">
-                                                ${{ number_format($subtotal, 2) }}
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" style="color:#9fb3c8;">
-                                                No hay productos registrados.
-                                            </td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="mobile-items">
-                            @forelse ($record->productos as $producto)
-                                @php
-                                    $cantidad = (int) ($producto->pivot->cantidad ?? 1);
-                                    $precioUnitario =
-                                        (float) ($producto->pivot->precio_unitario ?? ($producto->precio_base ?? 0));
-                                    $subtotal = (float) ($producto->pivot->subtotal ?? $cantidad * $precioUnitario);
-                                @endphp
-
-                                <div class="mobile-item-card">
-                                    <div style="font-size:18px; font-weight:700; margin-bottom:12px;">
-                                        {{ $producto->nombre ?? 'Sin producto' }}
-                                    </div>
-
-                                    @if (!empty($producto->descripcion))
-                                        <div class="explicacion-texto" style="margin-bottom:12px;">
-                                            {{ $producto->descripcion }}
-                                        </div>
-                                    @endif
-
-                                    <div class="mobile-item-row">
-                                        <div>
-                                            <div class="mobile-item-label">Cantidad</div>
-                                            <div>{{ $cantidad }}</div>
-                                        </div>
-
-                                        <div style="text-align:right;">
-                                            <div class="mobile-item-label">Precio unitario</div>
-                                            <div>${{ number_format($precioUnitario, 2) }}</div>
-                                        </div>
-                                    </div>
-
-                                    <div style="margin-top:10px;">
-                                        <div class="mobile-item-label">Subtotal</div>
-                                        <div style="font-size:18px; font-weight:800;">
-                                            ${{ number_format($subtotal, 2) }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div
-                                    style="
-                                        color:#9fb3c8;
-                                        background:#163252;
-                                        border:1px solid #2c5d94;
-                                        padding:14px;
-                                        border-radius:12px;
-                                    ">
-                                    No hay productos registrados.
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                @endif
             </div>
         @endif
 
@@ -1617,6 +1684,173 @@
                     "
                         @if (!$servicioSeleccionadoId) disabled @endif>
                         Guardar servicio
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($modalAgregarProductoAbierto)
+        <div
+            style="
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.6);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:9999;
+            padding:20px;
+        ">
+            <div
+                style="
+                width:100%;
+                max-width:650px;
+                background:white;
+                border-radius:18px;
+                padding:24px;
+                box-shadow:0 25px 50px rgba(0,0,0,.35);
+            ">
+                <div style="font-size:22px; font-weight:700; margin-bottom:18px; color:#111827;">
+                    Agregar producto al ticket
+                </div>
+
+                <div style="margin-bottom:14px; color:#4b5563; font-size:14px;">
+                    Estos productos sí modifican el total cobrado del ticket de autoservicio.
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                        Buscar y seleccionar producto
+                    </label>
+
+                    <input type="text" wire:model.live.debounce.300ms="buscarProducto"
+                        placeholder="Escribe nombre o descripción del producto..."
+                        style="
+                        width:100%;
+                        padding:12px;
+                        border-radius:10px;
+                        border:1px solid #d1d5db;
+                        color:#111827;
+                    " />
+                </div>
+
+                @if ($productoSeleccionadoId)
+                    <div
+                        style="
+                        margin-bottom:16px;
+                        padding:12px 14px;
+                        border-radius:12px;
+                        background:#ecfeff;
+                        border:1px solid #67e8f9;
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:12px;
+                    ">
+                        <div>
+                            <div style="font-size:12px; color:#0e7490; font-weight:700;">
+                                PRODUCTO SELECCIONADO
+                            </div>
+                            <div style="font-size:15px; color:#111827; font-weight:600;">
+                                {{ $productoSeleccionadoTexto }}
+                            </div>
+                        </div>
+
+                        <button type="button" wire:click="limpiarSeleccionProducto"
+                            style="
+                            border:none;
+                            background:#ef4444;
+                            color:white;
+                            padding:8px 12px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-weight:700;
+                        ">
+                            Cambiar
+                        </button>
+                    </div>
+                @endif
+
+                @if (!$productoSeleccionadoId && filled($buscarProducto))
+                    <div
+                        style="
+                        margin-bottom:16px;
+                        border:1px solid #d1d5db;
+                        border-radius:12px;
+                        max-height:240px;
+                        overflow-y:auto;
+                        background:white;
+                    ">
+                        @forelse ($this->productosDisponibles as $producto)
+                            <button type="button" wire:click="seleccionarProductoTicket({{ $producto->id }})"
+                                style="
+                                width:100%;
+                                text-align:left;
+                                padding:12px 14px;
+                                border:none;
+                                background:white;
+                                border-bottom:1px solid #e5e7eb;
+                                cursor:pointer;
+                                color:#111827;
+                            ">
+                                <div style="font-weight:700;">
+                                    {{ $producto->nombre }}
+                                </div>
+
+                                <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+                                    @if (!empty($producto->descripcion))
+                                        {{ $producto->descripcion }}
+                                    @endif
+                                </div>
+                            </button>
+                        @empty
+                            <div style="padding:14px; color:#6b7280;">
+                                No se encontraron productos con esa búsqueda.
+                            </div>
+                        @endforelse
+                    </div>
+                @endif
+
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; margin-bottom:8px; font-weight:600; color:#111827;">
+                        Cantidad
+                    </label>
+
+                    <input type="number" min="1" wire:model="cantidadProducto"
+                        style="
+                        width:100%;
+                        padding:12px;
+                        border-radius:10px;
+                        border:1px solid #d1d5db;
+                        color:#111827;
+                    " />
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" wire:click="cerrarModalAgregarProducto"
+                        style="
+                        padding:12px 16px;
+                        border:none;
+                        border-radius:10px;
+                        background:#6b7280;
+                        color:white;
+                        cursor:pointer;
+                    ">
+                        Cancelar
+                    </button>
+
+                    <button type="button" wire:click="agregarProductoTicket"
+                        style="
+                        padding:12px 16px;
+                        border:none;
+                        border-radius:10px;
+                        background:{{ $productoSeleccionadoId ? '#16a34a' : '#9ca3af' }};
+                        color:white;
+                        cursor:{{ $productoSeleccionadoId ? 'pointer' : 'not-allowed' }};
+                    "
+                        @if (!$productoSeleccionadoId) disabled @endif>
+                        Guardar producto
                     </button>
                 </div>
             </div>
