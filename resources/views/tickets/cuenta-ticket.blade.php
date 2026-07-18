@@ -27,7 +27,7 @@
 
         .ticket {
             width: 80mm;
-            padding: 10px;
+            padding: 10px 30px 10px 10px;
         }
 
         .center {
@@ -175,7 +175,7 @@
             }
 
             .ticket {
-                padding: 8px;
+                padding: 8px 30px 8px 8px;
             }
         }
     </style>
