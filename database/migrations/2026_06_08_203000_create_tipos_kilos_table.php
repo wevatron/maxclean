@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->text('descripcion')->nullable();
             $table->decimal('precio', 10, 2)->default(0);
+            $table->decimal('minimo', 8, 2)->default(3);
             $table->boolean('activo')->default(true);
             $table->unsignedInteger('orden')->default(0);
             $table->timestamps();
@@ -26,6 +27,7 @@ return new class extends Migration
                 'nombre' => 'Básico',
                 'descripcion' => 'Lavado estándar por kilo',
                 'precio' => 22,
+                'minimo' => 3,
                 'activo' => true,
                 'orden' => 1,
                 'created_at' => now(),
@@ -36,6 +38,7 @@ return new class extends Migration
                 'nombre' => 'Premium',
                 'descripcion' => 'Lavado premium por kilo',
                 'precio' => 28,
+                'minimo' => 3,
                 'activo' => true,
                 'orden' => 2,
                 'created_at' => now(),
@@ -46,6 +49,7 @@ return new class extends Migration
                 'nombre' => 'Extra lavado',
                 'descripcion' => 'Lavado intensivo por kilo',
                 'precio' => 32,
+                'minimo' => 3,
                 'activo' => true,
                 'orden' => 3,
                 'created_at' => now(),
@@ -56,6 +60,7 @@ return new class extends Migration
                 'nombre' => 'Expres',
                 'descripcion' => 'Servicio express por kilo',
                 'precio' => 30,
+                'minimo' => 3,
                 'activo' => true,
                 'orden' => 4,
                 'created_at' => now(),
@@ -66,6 +71,7 @@ return new class extends Migration
                 'nombre' => 'Ropa interior',
                 'descripcion' => 'Lavado especial por kilo',
                 'precio' => 25,
+                'minimo' => 1,
                 'activo' => true,
                 'orden' => 5,
                 'created_at' => now(),

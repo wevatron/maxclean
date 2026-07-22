@@ -32,10 +32,13 @@ class TipoKiloForm
                     ->required()
                     ->minValue(0),
 
-                TextInput::make('orden')
+                TextInput::make('minimo')
                     ->numeric()
-                    ->default(0)
-                    ->minValue(0),
+                    ->step(0.01)
+                    ->required()
+                    ->default(3)
+                    ->minValue(0)
+                    ->helperText('Cantidad mínima de kilos permitida para este tipo de lavado.'),
 
                 Toggle::make('activo')
                     ->default(true),

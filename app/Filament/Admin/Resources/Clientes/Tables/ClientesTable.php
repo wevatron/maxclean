@@ -2,16 +2,12 @@
 
 namespace App\Filament\Admin\Resources\Clientes\Tables;
 
-use Dom\Text;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use App\Models\User;
 
 class ClientesTable
 {
@@ -22,14 +18,28 @@ class ClientesTable
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap(),
                 TextColumn::make('email')
                     ->label('Correo')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->visibleFrom('md'),
                 TextColumn::make('whatsapp')
                     ->searchable()
                     ->label('Teléfono/Whatsapp')
+                    ->visibleFrom('md'),
+
+                TextColumn::make('contacto_mobile')
+                    ->label('Contacto')
+                    ->state(function (User $record): string {
+                        return trim((string) ($record->email ?: 'Sin correo'));
+                    })
+                    ->description(function (User $record): string {
+                        return trim((string) ($record->whatsapp ?: 'Sin teléfono'));
+                    })
+                    ->wrap()
+                    ->hiddenFrom('md'),
             ])
             ->filters([
                 TrashedFilter::make(),

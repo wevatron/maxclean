@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use App\Models\Descuento;
 use App\Models\Cuenta;
 use App\Models\Prenda;
@@ -11,12 +12,14 @@ use App\Models\Ticket;
 use App\Models\TicketStatus;
 use App\Models\User as Cliente;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema as DBSchema;
+use Illuminate\Support\Str;
 
 class PorEncargo extends Page
 {
@@ -50,6 +53,7 @@ class PorEncargo extends Page
     public $montoTemporal = 0;
 
     public $procesando = false;
+    public $mobileTab = 'cliente';
 
     public $clienteSearch = '';
     public $clientesEncontrados = [];
@@ -75,6 +79,7 @@ class PorEncargo extends Page
         }
 
         $this->clientePanelAbierto = true;
+        $this->mobileTab = 'cliente';
     }
 
     public function updatedSearch()
@@ -145,6 +150,7 @@ class PorEncargo extends Page
         $this->clienteSearch = $cliente->name;
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = false;
+        $this->mobileTab = 'prendas';
     }
 
     public function limpiarCliente()
@@ -155,6 +161,7 @@ class PorEncargo extends Page
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
         $this->crearCuentaNueva = false;
+        $this->mobileTab = 'cliente';
     }
 
     public function agregarPrenda($id)
@@ -206,6 +213,19 @@ class PorEncargo extends Page
         ];
 
         $this->calcularTotal();
+    }
+
+    public function getCantidadPrendaSeleccionada(int $prendaId): int
+    {
+        $cantidad = 0;
+
+        foreach ($this->items as $item) {
+            if ((int) ($item['prenda_id'] ?? 0) === $prendaId) {
+                $cantidad += (int) ($item['cantidad'] ?? 0);
+            }
+        }
+
+        return $cantidad;
     }
 
     public function eliminarItem($index)
@@ -469,6 +489,13 @@ public function abrirModalCobro()
                         "Se guardó el pago con éxito. " .
                         'Es $' . number_format((float) $this->montoCambio, 2) . ' de cambio.'
                     )
+                    ->actions([
+                        Action::make('verCuenta')
+                            ->label('Ver cuenta')
+                            ->url(CuentaResource::getUrl('edit', [
+                                'record' => $cuenta,
+                            ]), true),
+                    ])
                     ->success()
                     ->send();
             });
@@ -497,6 +524,7 @@ public function abrirModalCobro()
             $this->montoRecibido = 0;
             $this->montoCambio = 0;
             $this->modalCobroAbierto = false;
+            $this->mobileTab = 'cliente';
             $this->servicioSeleccionado = Servicio::where('activo', true)->first()?->id;
             $this->cargarPrendas();
         } catch (\Throwable $e) {
@@ -622,6 +650,25 @@ public function abrirModalCobro()
     public function getCrearClienteUrl(): string
     {
         return \App\Filament\Admin\Resources\Clientes\ClienteResource::getUrl('create');
+    }
+
+    public function getSucursalNombreCortoProperty(): string
+    {
+        $sucursal = auth()->user()?->sucursales?->firstWhere('id', $this->sucursalId)
+            ?? auth()->user()?->sucursales?->first();
+
+        $nombre = trim((string) ($sucursal?->nombre ?? 'Sucursal'));
+
+        return Str::limit($nombre, 35, '');
+    }
+
+    public function setMobileTab(string $tab): void
+    {
+        if (! in_array($tab, ['cliente', 'prendas', 'resumen'], true)) {
+            return;
+        }
+
+        $this->mobileTab = $tab;
     }
 
     public function updatedMontoTemporal(): void

@@ -14,7 +14,488 @@
             {{ $mensajeAcceso }}
         </div>
     @else
-        <div style="position:relative; display:flex; height:80vh; width:100%; background:#2b2b2b;">
+        <style>
+            @media (max-width: 767px) {
+                .autoservicio-desktop {
+                    display: none !important;
+                }
+
+                .autoservicio-mobile {
+                    display: block !important;
+                }
+
+                .autoservicio-mobile-menu {
+                    display: flex !important;
+                }
+            }
+
+            @media (min-width: 768px) {
+                .autoservicio-mobile {
+                    display: none !important;
+                }
+
+                .autoservicio-mobile-menu {
+                    display: none !important;
+                }
+            }
+        </style>
+
+        <div class="autoservicio-mobile" style="display:none; min-height:100vh; width:100%; background:#0b1220; color:white; padding:14px 14px 126px;">
+            <div style="padding:14px 16px; border-radius:18px; background:#111827; border:1px solid #1f2937; margin-bottom:12px;">
+                <div style="font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#93c5fd;">
+                    {{ $this->sucursalNombreCorto }}
+                </div>
+
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-top:4px;">
+                    <div>
+                        <div style="font-size:28px; line-height:1.05; font-weight:800;">
+                            Autoservicio
+                        </div>
+
+                        <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
+                            Busca clientes, agrega servicios o productos y cobra desde aquí.
+                        </div>
+                    </div>
+
+                    <button type="button" wire:click="setMobileTab('cliente')"
+                        style="
+                            padding:10px 14px;
+                            border-radius:999px;
+                            border:1px solid #334155;
+                            background:#0f172a;
+                            color:#e2e8f0;
+                            font-weight:700;
+                            font-size:13px;
+                        ">
+                        Cliente
+                    </button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:14px;">
+                    <div style="padding:14px; border-radius:16px; background:#0f172a; border:1px solid #1f2937;">
+                        <div style="font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#94a3b8;">
+                            Cliente
+                        </div>
+
+                        <div style="font-size:16px; font-weight:700; margin-top:8px;">
+                            {{ $clienteSeleccionadoNombre ?? 'Sin cliente' }}
+                        </div>
+                    </div>
+
+                    <div style="padding:14px; border-radius:16px; background:#0f172a; border:1px solid #1f2937;">
+                        <div style="font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#94a3b8;">
+                            Total
+                        </div>
+
+                        <div style="font-size:22px; font-weight:800; color:#22c55e; margin-top:8px;">
+                            ${{ number_format($this->totalConDescuento, 2) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if ($mobileTab === 'cliente')
+                <div style="padding:16px; border-radius:18px; background:#111827; border:1px solid #1f2937; margin-bottom:12px;">
+                    <div style="font-size:18px; font-weight:800; margin-bottom:12px;">
+                        Buscar cliente
+                    </div>
+
+                    <div style="position:relative; margin-bottom:14px;">
+                        <input type="text" wire:model.live.debounce.300ms="clienteSearch"
+                            placeholder="Nombre, teléfono o correo..."
+                            style="
+                                width:100%;
+                                padding:14px;
+                                border-radius:14px;
+                                border:1px solid #334155;
+                                background:#0f172a;
+                                color:white;
+                                font-size:16px;
+                            ">
+
+                        @if (!empty($clientesEncontrados))
+                            <div
+                                style="
+                                    position:absolute;
+                                    top:100%;
+                                    left:0;
+                                    right:0;
+                                    margin-top:8px;
+                                    background:#0f172a;
+                                    border:1px solid #334155;
+                                    border-radius:14px;
+                                    overflow:hidden;
+                                    z-index:20;
+                                    max-height:260px;
+                                    overflow-y:auto;
+                                    box-shadow:0 16px 30px rgba(0,0,0,.24);
+                                ">
+                                @foreach ($clientesEncontrados as $cliente)
+                                    <button type="button" wire:click="seleccionarCliente({{ $cliente['id'] }})"
+                                        style="
+                                            width:100%;
+                                            text-align:left;
+                                            padding:12px 14px;
+                                            border:none;
+                                            background:transparent;
+                                            color:white;
+                                            cursor:pointer;
+                                            border-bottom:1px solid #1f2937;
+                                        ">
+                                        <div style="font-weight:700;">
+                                            {{ $cliente['name'] }}
+                                        </div>
+
+                                        @if (!empty($cliente['whatsapp']))
+                                            <div style="font-size:13px; color:#94a3b8; margin-top:4px;">
+                                                Whatsapp: ({{ $cliente['whatsapp'] }})
+                                            </div>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    @if ($clienteSeleccionadoId)
+                        <div
+                            style="
+                                padding:14px;
+                                border-radius:14px;
+                                background:#0f172a;
+                                border:1px solid #334155;
+                                display:flex;
+                                justify-content:space-between;
+                                align-items:center;
+                                gap:12px;
+                            ">
+                            <div>
+                                <div style="font-size:12px; color:#94a3b8; text-transform:uppercase; letter-spacing:.12em;">
+                                    Cliente seleccionado
+                                </div>
+
+                                <div style="font-size:16px; font-weight:700; margin-top:6px;">
+                                    {{ $clienteSeleccionadoNombre }}
+                                </div>
+                            </div>
+
+                            <button type="button" wire:click="limpiarCliente"
+                                style="
+                                    padding:10px 14px;
+                                    border:none;
+                                    border-radius:12px;
+                                    background:#ef4444;
+                                    color:white;
+                                    font-weight:700;
+                                ">
+                                Quitar
+                            </button>
+                        </div>
+                    @endif
+
+                    <a href="{{ $this->getCrearClienteUrl() }}" target="_blank"
+                        style="
+                            display:inline-block;
+                            width:100%;
+                            margin-top:12px;
+                            padding:12px 16px;
+                            border-radius:12px;
+                            background:#2563eb;
+                            color:white;
+                            text-decoration:none;
+                            text-align:center;
+                            font-weight:800;
+                        ">
+                        Registrar cliente
+                    </a>
+                </div>
+            @elseif ($mobileTab === 'catalogo')
+                @if (! $clienteSeleccionadoId)
+                    <div
+                        style="
+                            padding:22px 18px;
+                            border-radius:18px;
+                            background:#111827;
+                            border:1px dashed #334155;
+                            color:#94a3b8;
+                            text-align:center;
+                            font-size:16px;
+                            font-weight:600;
+                        ">
+                        Selecciona un cliente para mostrar el catálogo.
+                    </div>
+                @else
+                    <div style="padding:16px; border-radius:18px; background:#111827; border:1px solid #1f2937; margin-bottom:12px;">
+                        <div style="font-size:18px; font-weight:800; margin-bottom:12px;">
+                            Buscar productos y servicios
+                        </div>
+
+                        <input type="text" wire:model.live="search" placeholder="Buscar..."
+                            style="
+                                width:100%;
+                                padding:14px;
+                                border-radius:14px;
+                                border:1px solid #334155;
+                                background:#0f172a;
+                                color:white;
+                                font-size:16px;
+                            ">
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                            <div style="font-size:17px; font-weight:800;">Servicios</div>
+                            <div style="font-size:12px; color:#94a3b8;">Toca una tarjeta para sumar 1</div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+                            @forelse ($servicios as $servicio)
+                                @php($cantidadSeleccionada = $this->getCantidadItemSeleccionado('servicio', $servicio->id))
+                                <button type="button" wire:click="agregarServicio({{ $servicio->id }})"
+                                    style="
+                                        position:relative;
+                                        text-align:left;
+                                        padding:14px;
+                                        border-radius:16px;
+                                        border:1px solid #1f2937;
+                                        background:#111827;
+                                        color:white;
+                                        min-height:128px;
+                                    ">
+                                    @if ($cantidadSeleccionada > 0)
+                                        <div style="position:absolute; top:10px; right:10px; min-width:26px; height:26px; padding:0 8px; border-radius:999px; background:#2563eb; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">
+                                            {{ $cantidadSeleccionada }}
+                                        </div>
+                                    @endif
+
+                                    <div style="display:inline-flex; margin-bottom:10px; padding:4px 10px; border-radius:999px; background:#1e40af; color:white; font-size:11px; font-weight:800;">
+                                        Servicio
+                                    </div>
+
+                                    <div style="font-size:16px; font-weight:700; line-height:1.15;">
+                                        {{ $servicio->nombre }}
+                                    </div>
+
+                                    <div style="font-size:12px; color:#94a3b8; margin-top:6px;">
+                                        {{ $servicio->descripcion }}
+                                    </div>
+
+                                    <div style="margin-top:10px; font-size:18px; font-weight:800; color:#22c55e;">
+                                        ${{ number_format($servicio->precio_base, 2) }}
+                                    </div>
+                                </button>
+                            @empty
+                                <div style="grid-column:1 / -1; padding:16px; border-radius:14px; background:#0f172a; color:#94a3b8;">
+                                    No hay servicios disponibles con esta búsqueda.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                            <div style="font-size:17px; font-weight:800;">Productos</div>
+                            <div style="font-size:12px; color:#94a3b8;">Toca una tarjeta para sumar 1</div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+                            @forelse ($productos as $producto)
+                                @php($cantidadSeleccionada = $this->getCantidadItemSeleccionado('producto', $producto->id))
+                                <button type="button" wire:click="agregarProducto({{ $producto->id }})"
+                                    style="
+                                        position:relative;
+                                        text-align:left;
+                                        padding:14px;
+                                        border-radius:16px;
+                                        border:1px solid #1f2937;
+                                        background:#111827;
+                                        color:white;
+                                        min-height:128px;
+                                    ">
+                                    @if ($cantidadSeleccionada > 0)
+                                        <div style="position:absolute; top:10px; right:10px; min-width:26px; height:26px; padding:0 8px; border-radius:999px; background:#2563eb; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">
+                                            {{ $cantidadSeleccionada }}
+                                        </div>
+                                    @endif
+
+                                    <div style="display:inline-flex; margin-bottom:10px; padding:4px 10px; border-radius:999px; background:#7c2d12; color:white; font-size:11px; font-weight:800;">
+                                        Producto
+                                    </div>
+
+                                    <div style="font-size:16px; font-weight:700; line-height:1.15;">
+                                        {{ $producto->nombre }}
+                                    </div>
+
+                                    <div style="font-size:12px; color:#94a3b8; margin-top:6px;">
+                                        Existencia: {{ $producto->existencia }}
+                                    </div>
+
+                                    <div style="font-size:12px; color:#94a3b8; margin-top:6px;">
+                                        {{ $producto->descripcion }}
+                                    </div>
+
+                                    <div style="margin-top:10px; font-size:18px; font-weight:800; color:#22c55e;">
+                                        ${{ number_format($producto->precio_base, 2) }}
+                                    </div>
+                                </button>
+                            @empty
+                                <div style="grid-column:1 / -1; padding:16px; border-radius:14px; background:#0f172a; color:#94a3b8;">
+                                    No hay productos disponibles con esta búsqueda.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                @endif
+            @else
+                <div style="padding:16px; border-radius:18px; background:#111827; border:1px solid #1f2937; margin-bottom:12px;">
+                    <div style="font-size:18px; font-weight:800; margin-bottom:12px;">
+                        Resumen
+                    </div>
+
+                    @if ($this->descuentoGlobalActivo)
+                        <div
+                            style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:8px;
+                                padding:8px 12px;
+                                border-radius:999px;
+                                background:#0f172a;
+                                border:1px solid #334155;
+                                color:#86efac;
+                                font-size:13px;
+                                font-weight:800;
+                                margin-bottom:12px;
+                            ">
+                            <span>Descuento global activo</span>
+                            @if ($this->etiquetaDescuento)
+                                <span>{{ $this->etiquetaDescuento }}</span>
+                            @endif
+                        </div>
+                    @endif
+
+                    <div style="font-size:42px; line-height:1; font-weight:900; color:#22c55e;">
+                        ${{ number_format($this->totalConDescuento, 2) }}
+                    </div>
+
+                    @if ($this->montoDescuento > 0)
+                        <div style="font-size:13px; color:#94a3b8; margin-top:8px;">
+                            Antes: ${{ number_format($total, 2) }} · Descuento: -${{ number_format($this->montoDescuento, 2) }}
+                        </div>
+                    @endif
+                </div>
+
+                <div style="padding:16px; border-radius:18px; background:#111827; border:1px solid #1f2937; margin-bottom:12px;">
+                    <div style="font-size:18px; font-weight:800; margin-bottom:12px;">
+                        Conceptos
+                    </div>
+
+                    @forelse ($items as $index => $item)
+                        <div
+                            style="
+                                display:flex;
+                                justify-content:space-between;
+                                align-items:flex-start;
+                                gap:12px;
+                                padding:14px;
+                                margin-bottom:10px;
+                                background:#0f172a;
+                                border-radius:14px;
+                                border:1px solid #1f2937;
+                            ">
+                            <div style="min-width:0;">
+                                <div style="font-size:15px; font-weight:700;">
+                                    {{ $item['nombre'] }}
+                                </div>
+
+                                <div style="display:inline-flex; margin-top:6px; padding:3px 8px; border-radius:999px; background:{{ ($item['tipo'] ?? 'servicio') === 'producto' ? '#7c2d12' : '#1e40af' }}; color:white; font-size:11px; font-weight:800;">
+                                    {{ ($item['tipo'] ?? 'servicio') === 'producto' ? 'Producto' : 'Servicio' }}
+                                </div>
+
+                                <div style="font-size:13px; color:#94a3b8; margin-top:8px;">
+                                    x{{ $item['cantidad'] }} · ${{ number_format($item['precio_unitario'], 2) }} c/u
+                                </div>
+                            </div>
+
+                            <div style="text-align:right; flex-shrink:0;">
+                                <div style="font-size:16px; font-weight:800;">
+                                    ${{ number_format($item['subtotal'], 2) }}
+                                </div>
+
+                                <button type="button" wire:click="eliminarItem({{ $index }})"
+                                    style="
+                                        margin-top:10px;
+                                        padding:6px 10px;
+                                        border:none;
+                                        border-radius:10px;
+                                        background:#ef4444;
+                                        color:white;
+                                        font-size:12px;
+                                        font-weight:700;
+                                    ">
+                                    Quitar
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div style="padding:16px; border-radius:14px; background:#0f172a; color:#94a3b8; text-align:center;">
+                            Aún no has agregado conceptos al ticket.
+                        </div>
+                    @endforelse
+                </div>
+
+                <button type="button" wire:click="abrirModalCobro"
+                    style="
+                        width:100%;
+                        padding:16px;
+                        border:none;
+                        border-radius:16px;
+                        background:#22c55e;
+                        color:white;
+                        font-size:20px;
+                        font-weight:900;
+                        cursor:pointer;
+                    ">
+                    COBRAR
+                </button>
+            @endif
+        </div>
+
+        <div class="autoservicio-mobile-menu"
+            style="
+                display:none;
+                position:fixed;
+                left:12px;
+                right:12px;
+                bottom:12px;
+                z-index:60;
+                align-items:center;
+                justify-content:space-between;
+                gap:8px;
+                padding:10px;
+                border-radius:22px;
+                background:rgba(15, 23, 42, 0.96);
+                border:1px solid rgba(51, 65, 85, 0.9);
+                box-shadow:0 18px 40px rgba(0,0,0,.35);
+                backdrop-filter:blur(14px);
+            ">
+            <button type="button" wire:click="setMobileTab('cliente')"
+                style="flex:1; padding:12px 8px; border:none; border-radius:16px; background:{{ $mobileTab === 'cliente' ? '#2563eb' : 'transparent' }}; color:white; font-weight:800; font-size:12px;">
+                Cliente
+            </button>
+
+            <button type="button" wire:click="setMobileTab('catalogo')"
+                style="flex:1; padding:12px 8px; border:none; border-radius:16px; background:{{ $mobileTab === 'catalogo' ? '#2563eb' : 'transparent' }}; color:white; font-weight:800; font-size:12px;">
+                Catálogo
+            </button>
+
+            <button type="button" wire:click="setMobileTab('resumen')"
+                style="flex:1; padding:12px 8px; border:none; border-radius:16px; background:{{ $mobileTab === 'resumen' ? '#2563eb' : 'transparent' }}; color:white; font-weight:800; font-size:12px;">
+                Resumen
+            </button>
+        </div>
+
+        <div class="autoservicio-desktop" style="position:relative; display:flex; height:80vh; width:100%; background:#2b2b2b;">
             <div
                 style="
                     position:absolute;

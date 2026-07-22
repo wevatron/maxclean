@@ -13,12 +13,14 @@ class TipoKilo extends Model
         'nombre',
         'descripcion',
         'precio',
+        'minimo',
         'activo',
         'orden',
     ];
 
     protected $casts = [
         'precio' => 'decimal:2',
+        'minimo' => 'decimal:2',
         'activo' => 'boolean',
     ];
 }

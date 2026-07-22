@@ -15,6 +15,8 @@ class TipoKilosTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('orden')
+            ->reorderable('orden')
             ->columns([
                 TextColumn::make('clave')
                     ->searchable()
@@ -26,6 +28,11 @@ class TipoKilosTable
 
                 TextColumn::make('precio')
                     ->money('MXN')
+                    ->sortable(),
+
+                TextColumn::make('minimo')
+                    ->label('Mínimo')
+                    ->formatStateUsing(fn ($state) => rtrim(rtrim(number_format((float) $state, 2), '0'), '.') . ' kg')
                     ->sortable(),
 
                 TextColumn::make('orden')

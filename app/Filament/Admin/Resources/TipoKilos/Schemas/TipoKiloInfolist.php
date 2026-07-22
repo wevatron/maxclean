@@ -17,6 +17,8 @@ class TipoKiloInfolist
                     ->columnSpanFull(),
                 TextEntry::make('precio')
                     ->money('MXN'),
+                TextEntry::make('minimo')
+                    ->formatStateUsing(fn ($state) => rtrim(rtrim(number_format((float) $state, 2), '0'), '.') . ' kg'),
                 TextEntry::make('orden'),
                 TextEntry::make('activo')
                     ->badge(),

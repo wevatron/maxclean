@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use App\Models\Cuenta;
 use App\Models\Descuento;
 use App\Models\Punto;
@@ -12,12 +13,14 @@ use App\Models\Ticket;
 use App\Models\TicketStatus;
 use App\Models\User as Cliente;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema as DBSchema;
+use Illuminate\Support\Str;
 
 class Autoservicio extends Page
 {
@@ -50,6 +53,7 @@ class Autoservicio extends Page
     public $montoTemporal = 0;
 
     public $procesando = false;
+    public $mobileTab = 'cliente';
 
     public $clienteSearch = '';
     public $clientesEncontrados = [];
@@ -74,6 +78,7 @@ class Autoservicio extends Page
         }
 
         $this->clientePanelAbierto = true;
+        $this->mobileTab = 'cliente';
         $this->calcularTotal();
     }
 
@@ -159,6 +164,7 @@ class Autoservicio extends Page
         $this->clientesEncontrados = [];
         $this->clientePanelAbierto = true;
         $this->crearCuentaNueva = false;
+        $this->mobileTab = 'cliente';
     }
 
     public function agregarServicio($id)
@@ -520,6 +526,13 @@ class Autoservicio extends Page
                         "Se guardó el pago con éxito. " .
                         'Es $' . number_format((float) $this->montoCambio, 2) . ' de cambio.'
                     )
+                    ->actions([
+                        Action::make('verCuenta')
+                            ->label('Ver cuenta')
+                            ->url(CuentaResource::getUrl('edit', [
+                                'record' => $cuenta,
+                            ]), true),
+                    ])
                     ->success()
                     ->send();
             });
@@ -539,10 +552,12 @@ class Autoservicio extends Page
                 'clienteSeleccionadoNombre',
                 'clientePanelAbierto',
                 'crearCuentaNueva',
+                'mobileTab',
             ]);
 
             $this->crearCuentaNueva = false;
             $this->clientePanelAbierto = true;
+            $this->mobileTab = 'cliente';
             $this->metodoPago = 'efectivo';
             $this->montoRecibido = 0;
             $this->montoCambio = 0;
@@ -728,5 +743,30 @@ class Autoservicio extends Page
     public function getCrearClienteUrl(): string
     {
         return \App\Filament\Admin\Resources\Clientes\ClienteResource::getUrl('create');
+    }
+
+    public function getSucursalNombreCortoProperty(): string
+    {
+        $sucursal = Sucursal::query()->find($this->sucursalId);
+        $nombre = trim((string) ($sucursal?->nombre ?? 'Sucursal'));
+
+        return Str::limit($nombre, 35, '');
+    }
+
+    public function getCantidadItemSeleccionado(string $tipo, int $id): int
+    {
+        return collect($this->items)
+            ->where('tipo', $tipo)
+            ->where('item_id', $id)
+            ->sum('cantidad');
+    }
+
+    public function setMobileTab(string $tab): void
+    {
+        if (! in_array($tab, ['cliente', 'catalogo', 'resumen'], true)) {
+            return;
+        }
+
+        $this->mobileTab = $tab;
     }
 }
