@@ -1245,8 +1245,14 @@
                             border: 1px solid {{ $completado ? '#16a34a' : '#334155' }};
                         ">
 
-                        <div style="font-weight:600; color:#ffffff;">
-                            {{ ucfirst($proceso->proceso) }}
+                        <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                            <div style="font-weight:600; color:#ffffff; line-height:1.2;">
+                                {{ ucfirst($proceso->proceso) }}
+                            </div>
+
+                            <div style="font-size:12px; color:#9fb3c8; line-height:1.2;">
+                                Actualizado: {{ $proceso->updated_at?->format('d/m/Y H:i') ?? '—' }}
+                            </div>
                         </div>
 
                         <div style="display:flex; gap:12px; align-items:center;">
