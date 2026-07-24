@@ -45,6 +45,27 @@ class User extends Authenticatable implements FilamentUser
             ->withTimestamps();
     }
 
+    public function sucursalActivaId(): ?int
+    {
+        if (filled($this->sucursal_id ?? null)) {
+            return (int) $this->sucursal_id;
+        }
+
+        if (session()->has('sucursal_id')) {
+            return (int) session('sucursal_id');
+        }
+
+        $sucursales = $this->relationLoaded('sucursales')
+            ? $this->sucursales
+            : $this->sucursales()->get();
+
+        if ($sucursales->count() === 1) {
+            return (int) $sucursales->first()->id;
+        }
+
+        return $sucursales->first()?->id ? (int) $sucursales->first()->id : null;
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {

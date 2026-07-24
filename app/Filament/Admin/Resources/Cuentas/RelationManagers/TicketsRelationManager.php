@@ -8,12 +8,19 @@ use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Livewire\Attributes\On;
 
 class TicketsRelationManager extends RelationManager
 {
     protected static string $relationship = 'tickets';
 
     protected static ?string $title = 'Tickets incluidos';
+
+    #[On('refresh-cuenta-relation-managers')]
+    public function refreshRelationManagerTable(): void
+    {
+        $this->resetTable();
+    }
 
     public function table(Table $table): Table
     {

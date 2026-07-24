@@ -85,6 +85,7 @@ class EditCuenta extends EditRecord
                     });
 
                     $this->record->refresh();
+                    $this->refreshCuentaRelationManagers();
 
                     Notification::make()
                         ->title($tickets->count() === 1 ? 'Ticket terminado' : 'Tickets terminados')
@@ -107,6 +108,7 @@ class EditCuenta extends EditRecord
                     CuentaResource::recalcularCuenta($record);
 
                     $record->refresh();
+                    $this->refreshCuentaRelationManagers();
 
                     $this->refreshFormData([
                         'total',
@@ -183,6 +185,7 @@ class EditCuenta extends EditRecord
                     CuentaResource::liquidarCuenta($record, $data);
 
                     $record->refresh();
+                    $this->refreshCuentaRelationManagers();
 
                     $this->refreshFormData([
                         'total',
@@ -215,6 +218,7 @@ class EditCuenta extends EditRecord
                     CuentaResource::cancelarCuenta($record, $data);
 
                     $record->refresh();
+                    $this->refreshCuentaRelationManagers();
 
                     $this->refreshFormData([
                         'total',
@@ -226,6 +230,11 @@ class EditCuenta extends EditRecord
                     ]);
                 }),
         ];
+    }
+
+    protected function refreshCuentaRelationManagers(): void
+    {
+        $this->dispatch('refresh-cuenta-relation-managers');
     }
 
     protected function ticketsLiquidables()

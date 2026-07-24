@@ -17,7 +17,14 @@ class CuentasTable
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
+                $sucursalId = auth()->user()?->sucursalActivaId();
+
                 return $query
+                    ->when(
+                        filled($sucursalId),
+                        fn (Builder $query) => $query->where('sucursal_id', $sucursalId),
+                        fn (Builder $query) => $query->whereRaw('1 = 0'),
+                    )
                     ->with(['cliente', 'sucursal', 'operador'])
                     ->withCount('tickets')
                     ->latest('id');

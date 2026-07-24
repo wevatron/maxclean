@@ -7,12 +7,19 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Livewire\Attributes\On;
 
 class TicketPagosRelationManager extends RelationManager
 {
     protected static string $relationship = 'ticketPagos';
 
     protected static ?string $title = 'Pagos aplicados a tickets';
+
+    #[On('refresh-cuenta-relation-managers')]
+    public function refreshRelationManagerTable(): void
+    {
+        $this->resetTable();
+    }
 
     public function table(Table $table): Table
     {
