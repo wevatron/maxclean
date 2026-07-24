@@ -4,13 +4,16 @@ namespace App\Filament\Admin\Resources\Cuentas\Pages;
 
 use App\Filament\Admin\Resources\Cuentas\CuentaResource;
 use App\Models\Cuenta;
+use App\Models\Ticket;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 use Filament\Schemas\Components\Utilities\Get;
@@ -30,67 +33,66 @@ class EditCuenta extends EditRecord
                 ->url(fn() => route('cuentas.ticket', $this->record))
                 ->openUrlInNewTab(),
 
-            Action::make('imprimir')
-                ->label('Imprimir cuenta física')
-                ->icon('heroicon-o-printer')
-                ->color('gray')
-                ->action(function () {
-                    try {
-                        $cuenta = $this->record->load([
-                            'cliente',
-                            'sucursal',
-                            'operador',
-                            'pagos.operador',
-                            'tickets' => function ($query) {
-                                $query->with([
-                                    'status',
-                                    'pagos' => function ($subQuery) {
-                                        $subQuery
-                                            ->where('cancelado', false)
-                                            ->orderBy('created_at');
-                                    },
-                                ])->orderBy('id');
-                            },
-                            'ticketPagos' => function ($query) {
-                                $query
-                                    ->with('ticket')
-                                    ->where('cancelado', false)
-                                    ->orderBy('created_at');
-                            },
-                        ]);
+            Action::make('terminarTickets')
+                ->label('Terminar tickets')
+                ->icon('heroicon-o-check-circle')
+                ->color('warning')
+                ->visible(fn (): bool => $this->ticketsLiquidables()->isNotEmpty())
+                ->modalHeading(fn () => 'Terminar tickets de la cuenta ' . $this->record->numero)
+                ->modalDescription('Selecciona los tickets liquidados que quieres marcar como entregados. Se completarán todos sus procesos.')
+                ->modalWidth('lg')
+                ->form([
+                    CheckboxList::make('tickets')
+                        ->label('Tickets liquidados')
+                        ->options(fn () => $this->ticketsLiquidablesForSelect())
+                        ->columns(1)
+                        ->required()
+                        ->helperText('Solo se muestran tickets con saldo en cero.'),
+                ])
+                ->action(function (array $data) {
+                    $ticketIds = array_values(array_filter($data['tickets'] ?? []));
 
-                        $payload = $this->buildCuentaPrinterPayload($cuenta);
-
-                        $response = Http::timeout($this->printerTimeout())
-                            ->acceptJson()
-                            ->post($this->printerServiceUrl(), $payload);
-
-                        if (! $response->successful()) {
-                            throw new \RuntimeException(
-                                $response->json('msg')
-                                    ?? $response->body()
-                                    ?? 'La impresora respondió con un error.'
-                            );
-                        }
-
-                        if (($response->json('status') ?? null) !== 'ok') {
-                            throw new \RuntimeException(
-                                $response->json('msg')
-                                    ?? 'La impresora no confirmó la impresión.'
-                            );
-                        }
-
+                    if ($ticketIds === []) {
                         Notification::make()
-                            ->title('Cuenta enviada a la impresora')
-                            ->success()
-                            ->send();
-                    } catch (Throwable $throwable) {
-                        Notification::make()
-                            ->title('No se pudo imprimir la cuenta')
-                            ->body($throwable->getMessage())
+                            ->title('Selecciona al menos un ticket')
                             ->danger()
                             ->send();
+
+                        return;
                     }
+
+                    $tickets = $this->record->tickets()
+                        ->whereIn('id', $ticketIds)
+                        ->with(['procesos', 'pagos'])
+                        ->get()
+                        ->filter(fn (Ticket $ticket) => $this->esTicketLiquidable($ticket))
+                        ->values();
+
+                    if ($tickets->isEmpty()) {
+                        Notification::make()
+                            ->title('No hay tickets válidos para terminar')
+                            ->body('Solo puedes terminar tickets liquidados.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    DB::transaction(function () use ($tickets): void {
+                        foreach ($tickets as $ticket) {
+                            $this->terminarTicketConProcesos($ticket);
+                        }
+                    });
+
+                    $this->record->refresh();
+
+                    Notification::make()
+                        ->title($tickets->count() === 1 ? 'Ticket terminado' : 'Tickets terminados')
+                        ->success()
+                        ->body($tickets->count() === 1
+                            ? 'Se completaron todos sus procesos y se marcó como entregado.'
+                            : 'Se completaron todos sus procesos y se marcaron como entregados.')
+                        ->send();
                 }),
 
             Action::make('recalcular')
@@ -224,6 +226,72 @@ class EditCuenta extends EditRecord
                     ]);
                 }),
         ];
+    }
+
+    protected function ticketsLiquidables()
+    {
+        $this->record->loadMissing([
+            'tickets.procesos',
+            'tickets.pagos',
+        ]);
+
+        return $this->record->tickets->filter(fn (Ticket $ticket) => $this->esTicketLiquidable($ticket));
+    }
+
+    protected function ticketsLiquidablesForSelect(): array
+    {
+        return $this->ticketsLiquidables()
+            ->mapWithKeys(fn (Ticket $ticket) => [
+                $ticket->id => $this->labelTicketLiquidable($ticket),
+            ])
+            ->all();
+    }
+
+    protected function labelTicketLiquidable(Ticket $ticket): string
+    {
+        $tipoTicket = match ($ticket->tipo) {
+            'encargo' => 'Pieza',
+            'encargo_express' => 'Express',
+            'encargo_kilo' => 'Kilo',
+            'autoservicio' => 'Auto',
+            default => (string) $ticket->tipo,
+        };
+
+        return sprintf(
+            '#%s · %s · %s',
+            str_pad((string) $ticket->numero, 6, '0', STR_PAD_LEFT),
+            $tipoTicket,
+            '$' . number_format((float) $ticket->total, 2)
+        );
+    }
+
+    protected function esTicketLiquidable(Ticket $ticket): bool
+    {
+        return (float) $ticket->saldo <= 0;
+    }
+
+    protected function terminarTicketConProcesos(Ticket $ticket): void
+    {
+        $ticket->loadMissing('procesos');
+
+        foreach (Ticket::ordenProcesos() as $nombreProceso) {
+            $ticket->procesos()->updateOrCreate(
+                ['proceso' => $nombreProceso],
+                ['completado' => true],
+            );
+        }
+
+        $ticket->procesos()->update([
+            'completado' => true,
+        ]);
+
+        $statusEntregadoId = \App\Models\TicketStatus::query()
+            ->whereRaw('LOWER(nombre) = ?', ['entregado'])
+            ->value('id');
+
+        $ticket->update([
+            'status_id' => $statusEntregadoId ?? 5,
+        ]);
     }
 
     protected function descuentoCuentaBadge(): ?HtmlString
