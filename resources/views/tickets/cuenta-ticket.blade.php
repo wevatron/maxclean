@@ -38,6 +38,14 @@
             text-align: right;
         }
 
+        .client-name {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-align: center;
+            word-break: break-word;
+        }
+
         .bold {
             font-weight: bold;
         }
@@ -215,9 +223,8 @@
                 </div>
             </div>
 
-            <div class="row section">
-                <div class="left bold">Cliente</div>
-                <div class="right">{{ $cuenta->cliente?->name ?? 'Sin cliente' }}</div>
+            <div class="section client-name">
+                {{ $cuenta->cliente?->name ?? 'Sin cliente' }}
             </div>
 
             @if ($cuenta->cliente?->whatsapp)

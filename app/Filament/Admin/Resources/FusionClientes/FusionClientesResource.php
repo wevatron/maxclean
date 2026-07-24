@@ -25,12 +25,12 @@ class FusionClientesResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->can('Clientes:Gestionar');
+        return auth()->user()?->hasRole('super_admin');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->can('Clientes:Gestionar');
+        return auth()->user()?->hasRole('super_admin');
     }
 
     public static function getEloquentQuery(): Builder
