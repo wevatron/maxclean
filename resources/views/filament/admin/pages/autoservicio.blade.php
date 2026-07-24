@@ -301,6 +301,7 @@
                         <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
                             @forelse ($productos as $producto)
                                 @php($cantidadSeleccionada = $this->getCantidadItemSeleccionado('producto', $producto->id))
+                                @php($existenciaColor = (int) $producto->existencia > 10 ? '#22c55e' : '#ef4444')
                                 <button type="button" wire:click="agregarProducto({{ $producto->id }})"
                                     style="
                                         position:relative;
@@ -326,7 +327,7 @@
                                         {{ $producto->nombre }}
                                     </div>
 
-                                    <div style="font-size:12px; color:#94a3b8; margin-top:6px;">
+                                    <div style="font-size:12px; color:{{ $existenciaColor }}; margin-top:6px; font-weight:800;">
                                         Existencia: {{ $producto->existencia }}
                                     </div>
 
@@ -606,6 +607,7 @@
 
                             <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
                                 @forelse ($productos as $producto)
+                                    @php($existenciaColor = (int) $producto->existencia > 10 ? '#22c55e' : '#ef4444')
                                     <div wire:click="agregarProducto({{ $producto->id }})"
                                         style="
                                             padding:20px;
@@ -624,7 +626,7 @@
                                             {{ $producto->nombre }}
                                         </div>
 
-                                        <div style="font-weight:600; font-size:11px; color:#f59e0b;">
+                                        <div style="font-weight:800; font-size:11px; color:{{ $existenciaColor }};">
                                             Existencia: {{ $producto->existencia }}
                                         </div>
 
